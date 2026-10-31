@@ -1,0 +1,7 @@
+# SMG gateway (Rust binary shipped as a Python wheel; macOS arm64/x86_64 and Linux)
+smg==1.13.0
+# load generator, adapter, helpers
+aiohttp>=3.9
+requests>=2.31
+# used in Task 4 to show that ordinary SDKs work unchanged through the gateway
+openai>=1.40

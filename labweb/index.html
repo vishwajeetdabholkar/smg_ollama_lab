@@ -1,0 +1,1446 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SMG + Ollama Lab</title>
+<style>
+:root{
+  --bg:#0a0d13; --nav:#0c1018; --panel:#11161f; --panel2:#151b27; --line:#212a3a; --line2:#2a3550;
+  --text:#e6e9ef; --muted:#8e97aa; --dim:#5f687c;
+  --accent:#7aa2ff; --green:#4ade80; --red:#f87171; --amber:#fbbf24; --violet:#c084fc; --cyan:#22d3ee; --pink:#f472b6;
+  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--text);font:14.5px/1.62 -apple-system,BlinkMacSystemFont,"Inter","Segoe UI",sans-serif;-webkit-font-smoothing:antialiased}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+code{font-family:var(--mono);font-size:.86em;background:#18202f;border:1px solid #232d42;padding:1px 5px;border-radius:5px;color:#cbd6ff;white-space:break-spaces}
+a.file{cursor:pointer}
+a.file code{border-color:#34508a;color:#a9c4ff}
+a.file:hover code{background:#1d2a45}
+strong{color:#fff}
+h1,h2,h3{line-height:1.25}
+button{font:inherit;color:inherit}
+
+.app{display:grid;grid-template-columns:236px minmax(0,1fr) 388px;height:100vh}
+nav{background:var(--nav);border-right:1px solid var(--line);overflow:auto;display:flex;flex-direction:column}
+main{overflow:auto;scroll-behavior:smooth}
+aside{background:var(--nav);border-left:1px solid var(--line);overflow:auto;padding:14px 14px 40px}
+
+.brand{padding:18px 16px 12px;display:flex;gap:10px;align-items:center}
+.logo{width:30px;height:30px;border-radius:9px;background:conic-gradient(from 200deg,#7aa2ff,#c084fc,#22d3ee,#7aa2ff);display:grid;place-items:center;font:800 12px var(--mono);color:#0a0d13}
+.brand b{display:block;font-size:13.5px}
+.brand span{font-size:11.5px;color:var(--muted)}
+.overall{margin:4px 16px 12px;height:5px;border-radius:9px;background:#1a2130;overflow:hidden}
+.overall i{display:block;height:100%;background:linear-gradient(90deg,#7aa2ff,#4ade80);width:0;transition:width .5s}
+.overall-l{margin:0 16px 10px;font-size:11.5px;color:var(--muted)}
+.navlist{padding:4px 8px;flex:1}
+.navitem{display:flex;align-items:center;gap:10px;padding:7px 9px;border-radius:9px;cursor:pointer;color:var(--muted);font-size:13.2px;line-height:1.3;user-select:none}
+.navitem:hover{background:#121826;color:var(--text)}
+.navitem.active{background:var(--panel2);color:var(--text);box-shadow:inset 0 0 0 1px var(--line2)}
+.navitem .num{font:600 11px var(--mono);color:var(--dim);width:16px;text-align:right}
+.navitem.active .num{color:var(--accent)}
+.navsep{margin:12px 12px 6px;font:600 10.5px var(--mono);letter-spacing:.09em;color:var(--dim);text-transform:uppercase}
+.navfoot{padding:10px 14px 16px;border-top:1px solid var(--line);display:flex;gap:8px;flex-wrap:wrap}
+
+.page{max-width:900px;margin:0 auto;padding:34px 40px 180px}
+.crumbs{font:600 11.5px var(--mono);letter-spacing:.08em;color:var(--accent);text-transform:uppercase}
+.page h1{font-size:30px;margin:6px 0 8px;letter-spacing:-.01em}
+.goal{font-size:16.5px;color:#c9cfdb;margin:0 0 18px}
+.page p{margin:10px 0}
+.page ul,.page ol{padding-left:22px}
+.page li{margin:4px 0}
+.page h3{font-size:16px;margin:22px 0 8px}
+table{border-collapse:collapse;width:100%;margin:12px 0;font-size:13.5px}
+th,td{border-bottom:1px solid var(--line);padding:7px 10px;text-align:left;vertical-align:top}
+th{color:var(--muted);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.05em}
+
+.why{display:grid;grid-template-columns:1fr;gap:12px;background:linear-gradient(135deg,rgba(122,162,255,.09),rgba(192,132,252,.06));border:1px solid #27335a;border-radius:16px;padding:16px 18px;margin:16px 0 8px}
+.why h4{margin:0;font:700 11.5px var(--mono);letter-spacing:.09em;color:#a9bfff;text-transform:uppercase}
+.why p{margin:0;color:#d7dceb}
+.terms{display:flex;flex-wrap:wrap;gap:8px}
+.term-chip{position:relative;font-size:12.5px;padding:4px 10px;border-radius:999px;background:#151d30;border:1px solid #2b3a63;color:#c3d1ff;cursor:help}
+.term-chip .tip{display:none;position:absolute;left:0;top:calc(100% + 6px);z-index:20;width:280px;padding:10px 12px;border-radius:10px;background:#0d121c;border:1px solid var(--line2);color:var(--text);font-size:12.5px;line-height:1.5;box-shadow:0 12px 30px rgba(0,0,0,.5)}
+.term-chip:hover .tip,.term-chip:focus .tip{display:block}
+
+.loopbar{display:flex;gap:6px;flex-wrap:wrap;margin:18px 0 4px;position:sticky;top:0;z-index:5;padding:10px 0;background:linear-gradient(var(--bg) 75%,transparent)}
+.loopbar a{font:600 11px var(--mono);letter-spacing:.06em;text-transform:uppercase;padding:6px 10px;border-radius:8px;background:var(--panel);border:1px solid var(--line);color:var(--muted)}
+.loopbar a:hover{color:var(--text);text-decoration:none;border-color:var(--line2)}
+
+.card{background:var(--panel);border:1px solid var(--line);border-radius:16px;margin:18px 0;scroll-margin-top:56px;position:relative}
+.card::before{content:"";position:absolute;left:0;top:14px;bottom:14px;width:3px;border-radius:3px;background:var(--kc,var(--line2))}
+.card>.hd{display:flex;align-items:center;gap:10px;padding:13px 18px 4px 20px}
+.card>.hd b{font-size:15px}
+.card>.bd{padding:4px 20px 16px 20px}
+.chip{font:700 10.5px/1 var(--mono);letter-spacing:.09em;text-transform:uppercase;padding:5px 8px;border-radius:6px;background:color-mix(in srgb,var(--kc) 16%,transparent);color:var(--kc)}
+.k-prep{--kc:#8e97aa}.k-predict{--kc:var(--violet)}.k-do{--kc:var(--accent)}.k-observe{--kc:var(--cyan)}
+.k-explain{--kc:var(--amber)}.k-challenge{--kc:var(--pink)}.k-wrap{--kc:var(--red)}.k-check{--kc:var(--green)}
+.lead{font-size:15px;color:#dfe4ee}
+
+.cmd{border:1px solid #1f283a;border-radius:12px;background:#080b11;margin:12px 0;overflow:hidden}
+.cmdrow{display:grid;grid-template-columns:38px minmax(0,1fr) auto;gap:10px;align-items:start;padding:9px 10px 9px 10px;border-top:1px solid #141a27;transition:background .2s}
+.cmdrow:first-child{border-top:0}
+.cmdrow:hover{background:#0b0f18}
+.cmdrow.ran{background:rgba(74,222,128,.035)}
+.cmdrow.ran pre.sh{opacity:.62}
+.tchip{font:700 10.5px/1 var(--mono);padding:5px 0;border-radius:6px;background:#16203a;color:#a3b9ff;text-align:center;margin-top:1px;cursor:help}
+.tchip.fg{background:#2b2111;color:var(--amber)}
+.tchip.all{background:#1c1730;color:var(--violet)}
+pre.sh{margin:0;font:12.6px/1.6 var(--mono);white-space:pre-wrap;word-break:break-word;color:#dde3f0}
+.sh .c{color:#7dd3fc;font-weight:600}.sh .f{color:#c4b5fd}.sh .s{color:#86efac}.sh .cm{color:#5f687c;font-style:italic}.sh .hd{color:#c9cfdb}
+.tools{display:flex;gap:6px;align-items:center}
+.ico{border:1px solid #263047;background:#111827;border-radius:7px;padding:3px 8px;cursor:pointer;font-size:12px;color:#c9d2e6}
+.ico:hover{border-color:#3d4f7a;color:#fff}
+.ico.ok{border-color:#2f6a46;color:var(--green)}
+.tick{display:flex;align-items:center;gap:4px;font-size:11.5px;color:var(--muted);cursor:pointer;user-select:none}
+.tick input{accent-color:#4ade80;margin:0;cursor:pointer}
+.fgnote{grid-column:2/4;font-size:11.5px;color:#c99a3a;margin-top:-4px}
+.cmtrow{padding:7px 12px 0 58px;color:var(--dim);font:12px/1.5 var(--mono)}
+.expect{margin:0 10px 10px 58px;border:1px dashed #263350;border-radius:10px;background:#0b1019}
+.expect summary{cursor:pointer;padding:6px 10px;font:600 10.5px var(--mono);letter-spacing:.07em;text-transform:uppercase;color:#7f8fb8;list-style:none}
+.expect summary::before{content:"▸ ";}
+.expect[open] summary::before{content:"▾ ";}
+.expect .ebody{padding:0 12px 10px;font-size:13px;color:#cfd6e4}
+.expect .ebody p{margin:4px 0}
+pre.out{margin:4px 0 6px;padding:8px 10px;background:#05070b;border:1px solid #182033;border-radius:8px;font:12px/1.5 var(--mono);color:#b7f7c9;white-space:pre-wrap;word-break:break-word}
+pre.code{background:#080b11;border:1px solid #1f283a;border-radius:12px;padding:12px 14px;font:12.5px/1.55 var(--mono);overflow:auto;white-space:pre}
+
+.callout{border-radius:12px;padding:11px 14px 11px 42px;margin:12px 0;position:relative;font-size:14px}
+.callout::before{position:absolute;left:14px;top:10px;font:700 14px var(--mono)}
+.callout p{margin:0}
+.callout.stop{background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.3)}
+.callout.stop::before{content:"■";color:var(--red)}
+.callout.tip{background:rgba(251,191,36,.07);border:1px solid rgba(251,191,36,.28)}
+.callout.tip::before{content:"!";color:var(--amber)}
+.callout.ok{background:rgba(74,222,128,.07);border:1px solid rgba(74,222,128,.28)}
+.callout.ok::before{content:"✓";color:var(--green)}
+
+textarea.note{width:100%;min-height:74px;margin-top:10px;background:#090c12;border:1px solid #263049;border-radius:10px;color:var(--text);padding:10px 12px;font:13.5px/1.55 -apple-system,BlinkMacSystemFont,sans-serif;resize:vertical;outline:none}
+textarea.note:focus{border-color:#4a63a8;box-shadow:0 0 0 3px rgba(122,162,255,.12)}
+textarea.note::placeholder{color:#4f586b}
+.saved{font-size:11px;color:var(--dim);margin-top:4px;height:14px}
+
+.q{border:1px solid var(--line);border-radius:12px;padding:12px 14px 14px;margin:12px 0;background:var(--panel2)}
+.qhead{display:flex;gap:10px;align-items:flex-start}
+.qn{font:700 11px var(--mono);color:var(--amber);background:rgba(251,191,36,.12);border-radius:6px;padding:4px 7px;margin-top:2px}
+.qt{flex:1}
+.qt p{margin:0}
+.btn{border:1px solid var(--line2);background:#141b2a;border-radius:9px;padding:6px 12px;cursor:pointer;font-size:13px;color:#d3dbec}
+.btn:hover{border-color:#40548a;color:#fff}
+.btn.primary{background:linear-gradient(135deg,#3b5bd6,#6c4fd6);border-color:transparent;color:#fff;font-weight:600}
+.btn.primary:hover{filter:brightness(1.1)}
+.btn.small{padding:3px 9px;font-size:12px}
+.btn.ghost{background:transparent}
+.btn[disabled]{opacity:.5;cursor:wait}
+.reveal-row{margin-top:10px;display:flex;gap:10px;align-items:center}
+.answer{display:none;margin-top:10px;padding:12px 14px;border-radius:10px;background:rgba(251,191,36,.05);border:1px solid rgba(251,191,36,.22);font-size:14px}
+.answer.show{display:block;animation:fade .25s}
+.answer p{margin:6px 0}
+@keyframes fade{from{opacity:0;transform:translateY(-3px)}to{opacity:1}}
+
+pre.checkout{white-space:pre-wrap;background:#05070b;border:1px solid #182033;border-radius:10px;padding:10px 12px;font:12.5px/1.55 var(--mono);margin:12px 0 0;display:none}
+pre.checkout.show{display:block}
+pre.checkout.pass{border-color:#2f6a46;color:#bff5cf}
+pre.checkout.fail{border-color:#6a2f2f;color:#ffc9c9}
+.pager{display:flex;justify-content:space-between;margin-top:30px;gap:12px}
+.pager .btn{padding:10px 16px}
+
+.hero{border-radius:20px;padding:28px 28px 22px;background:radial-gradient(1200px 300px at 0% 0%,rgba(122,162,255,.18),transparent),radial-gradient(800px 300px at 100% 0%,rgba(192,132,252,.14),transparent),var(--panel);border:1px solid #273150}
+.hero h1{margin:0 0 6px;font-size:34px}
+.hero p{color:#cdd3df;font-size:15.5px}
+.loopsteps{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin:18px 0 6px}
+.loopsteps div{border-radius:12px;padding:10px 10px;background:#0d121c;border:1px solid var(--line);font-size:12.5px;color:var(--muted)}
+.loopsteps b{display:block;font:700 11px var(--mono);letter-spacing:.08em;text-transform:uppercase;margin-bottom:3px}
+.terms4{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin:12px 0}
+.tbox{border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:#0b0f17;font-size:13px}
+.tbox b{font:700 12px var(--mono)}
+.tbox .tt{display:inline-block;font:700 10.5px var(--mono);padding:3px 6px;border-radius:5px;margin-right:6px}
+.taskgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin:14px 0}
+.tcard{border:1px solid var(--line);border-radius:14px;padding:12px 14px;background:var(--panel);cursor:pointer;transition:border-color .2s, transform .2s}
+.tcard:hover{border-color:#3a4b78;transform:translateY(-1px)}
+.tcard .n{font:700 11px var(--mono);color:var(--accent)}
+.tcard b{display:block;margin:2px 0 4px}
+.tcard span{font-size:12.5px;color:var(--muted)}
+.tcard.done{border-color:#2f6a46}
+.tcard.done .n::after{content:"  ✓ done";color:var(--green)}
+
+/* aside */
+.reel{border-radius:22px;background:#05070c;border:1px solid #232b3d;overflow:hidden;box-shadow:0 20px 50px rgba(0,0,0,.45);position:relative}
+.reel-bars{display:flex;gap:4px;padding:10px 12px 0}
+.reel-bars div{flex:1;height:3px;border-radius:3px;background:rgba(255,255,255,.14);overflow:hidden;cursor:pointer}
+.reel-bars div i{display:block;height:100%;width:0;background:#fff}
+.reel-title{padding:8px 14px 0;font:700 12px var(--mono);letter-spacing:.06em;color:#c9d4f5;text-transform:uppercase;display:flex;justify-content:space-between;gap:8px}
+.reel-title span{color:var(--dim);font-weight:600}
+.reel canvas{display:block;width:100%}
+.reel-cap{min-height:74px;padding:4px 16px 12px;font-size:14px;line-height:1.45;color:#e9edf6}
+.reel-cap b{color:#ffd76a;font-weight:700}
+.reel-ctl{display:flex;gap:6px;justify-content:center;padding:0 0 12px}
+.reel-ctl button{border:1px solid #263047;background:#0f1522;border-radius:8px;padding:3px 12px;cursor:pointer;color:#c9d2e6;font-size:13px}
+.reel-ctl button:hover{border-color:#3d4f7a}
+.tabs{display:flex;gap:4px;margin:16px 0 10px;border-bottom:1px solid var(--line)}
+.tabs button{background:none;border:0;padding:8px 10px;cursor:pointer;color:var(--muted);font-size:13px;border-bottom:2px solid transparent;margin-bottom:-1px}
+.tabs button.on{color:var(--text);border-bottom-color:var(--accent)}
+.tabs button .badge{font:700 10px var(--mono);padding:1px 5px;border-radius:5px;background:#3a1f1f;color:#ffb4b4;margin-left:4px}
+.comp{display:grid;grid-template-columns:10px 76px 50px 1fr;gap:8px;align-items:center;padding:7px 4px;border-bottom:1px solid #151b28;font-size:12.5px}
+.comp b{font:600 12px var(--mono)}
+.comp .port{font:12px var(--mono);color:var(--dim)}
+.comp .st{color:var(--muted);font-size:12px;text-align:right}
+.dot{width:9px;height:9px;border-radius:50%;background:#333c50}
+.dot.ok{background:var(--green);box-shadow:0 0 8px rgba(74,222,128,.6)}
+.dot.manual{background:var(--accent);box-shadow:0 0 8px rgba(122,162,255,.6)}
+.dot.warn{background:var(--amber)}
+.hint{font-size:12px;color:#e7c27a;background:rgba(251,191,36,.07);border:1px solid rgba(251,191,36,.22);border-radius:9px;padding:7px 9px;margin:6px 0}
+.hint code{font-size:11px}
+.small{font-size:12px;color:var(--muted)}
+.wk{font:12px var(--mono);padding:6px 4px;border-bottom:1px solid #151b28;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.wk em{font-style:normal;color:var(--dim)}
+.envchips{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
+.envchips span{font:11px var(--mono);padding:2px 7px;border-radius:6px;background:#121a2a;border:1px solid #222c43;color:#b7c4e6}
+.sect{font:700 10.5px var(--mono);letter-spacing:.09em;color:var(--dim);text-transform:uppercase;margin:16px 0 6px}
+.chart{background:#0b0f17;border:1px solid var(--line);border-radius:12px;padding:8px 8px 4px;margin:8px 0}
+.chart h5{margin:2px 4px 4px;font:600 11.5px var(--mono);color:#b9c4dd}
+.rtable{width:100%;font:11px var(--mono);border-collapse:collapse}
+.rtable th,.rtable td{padding:4px 5px;border-bottom:1px solid #161d2b;text-align:right;white-space:nowrap}
+.rtable th:first-child,.rtable td:first-child{text-align:left}
+.legend{display:flex;gap:10px;flex-wrap:wrap;font:11px var(--mono);color:var(--muted);padding:0 4px 4px}
+.legend i{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:4px;vertical-align:-1px}
+.kv{font:12px var(--mono);display:grid;grid-template-columns:140px 1fr;gap:3px 10px;padding:4px}
+.kv span:nth-child(odd){color:var(--dim)}
+
+.drawer{position:fixed;inset:0 0 0 auto;width:min(760px,96vw);background:#0b0f17;border-left:1px solid var(--line2);box-shadow:-20px 0 60px rgba(0,0,0,.5);transform:translateX(100%);transition:transform .25s;z-index:50;display:flex;flex-direction:column}
+.drawer.open{transform:none}
+.drawer .dh{display:flex;justify-content:space-between;align-items:center;padding:12px 18px;border-bottom:1px solid var(--line);font:600 13px var(--mono)}
+.drawer .db{overflow:auto;padding:10px 26px 60px}
+.drawer pre.code{white-space:pre-wrap}
+.toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(20px);opacity:0;transition:all .25s;background:#141c2c;border:1px solid var(--line2);padding:9px 16px;border-radius:10px;font-size:13px;z-index:60;pointer-events:none}
+.toast.show{opacity:1;transform:translateX(-50%)}
+.offline{max-width:640px;margin:12vh auto;padding:24px;border:1px solid var(--line2);border-radius:16px;background:var(--panel)}
+.fab{display:none;position:fixed;right:16px;bottom:16px;z-index:40;border-radius:999px;padding:10px 16px;background:linear-gradient(135deg,#3b5bd6,#6c4fd6);border:0;color:#fff;font-weight:600;cursor:pointer;box-shadow:0 10px 30px rgba(0,0,0,.4)}
+.menu{display:none}
+
+@media (max-width:1240px){
+  .app{grid-template-columns:220px minmax(0,1fr)}
+  aside{position:fixed;right:0;top:0;bottom:0;width:390px;z-index:45;transform:translateX(100%);transition:transform .25s;box-shadow:-20px 0 60px rgba(0,0,0,.5)}
+  aside.open{transform:none}
+  .fab{display:block}
+}
+@media (max-width:860px){
+  .app{grid-template-columns:minmax(0,1fr)}
+  nav{position:fixed;left:0;top:0;bottom:0;width:250px;z-index:46;transform:translateX(-100%);transition:transform .25s}
+  nav.open{transform:none}
+  .menu{display:block;position:fixed;left:12px;top:12px;z-index:40}
+  .page{padding:56px 18px 160px}
+  .loopsteps,.taskgrid,.terms4{grid-template-columns:1fr 1fr}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <nav id="nav"></nav>
+  <main id="main"><div class="page" id="page"></div></main>
+  <aside id="aside">
+    <div id="reelhost"></div>
+    <div class="tabs" id="tabs">
+      <button data-tab="live" class="on">Live</button>
+      <button data-tab="results">Results</button>
+      <button data-tab="notes">Notes</button>
+    </div>
+    <div id="tab-live"></div>
+    <div id="tab-results" hidden></div>
+    <div id="tab-notes" hidden></div>
+  </aside>
+</div>
+<button class="btn menu" id="menuBtn">☰ Tasks</button>
+<button class="fab" id="fab">Reel &amp; live status</button>
+<div class="drawer" id="drawer"><div class="dh"><span id="drawerTitle"></span><button class="btn small" data-act="closedrawer">Close ✕</button></div><div class="db" id="drawerBody"></div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+"use strict";
+/* ============================================================ utilities */
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+const store = {
+  get(k, d) { try { const v = localStorage.getItem("smglab:" + k); return v === null ? d : JSON.parse(v); } catch { return d; } },
+  set(k, v) { localStorage.setItem("smglab:" + k, JSON.stringify(v)); },
+  del(k) { localStorage.removeItem("smglab:" + k); },
+  keys() { return Object.keys(localStorage).filter(k => k.startsWith("smglab:")).map(k => k.slice(7)); },
+};
+function toast(msg) { const t = $("#toast"); t.textContent = msg; t.classList.add("show"); clearTimeout(toast.h); toast.h = setTimeout(() => t.classList.remove("show"), 1800); }
+async function api(path, opts) { const r = await fetch(path, opts); if (!r.ok) throw new Error(path + " " + r.status); return r.json(); }
+
+/* ============================================================ markdown */
+const FENCE = /^(\s*)```\s*([\w-]*)\s*$/;
+const LISTM = /^(\s*)([-*+]|\d+[.)])\s+(.*)$/;
+function isBlockStart(l) { return FENCE.test(l) || /^#{1,6}\s/.test(l) || LISTM.test(l) || /^\s*\|/.test(l) || /^\s*(---+|\*\*\*+)\s*$/.test(l) || /^\s*>/.test(l); }
+function lex(src) {
+  const lines = String(src).replace(/\r/g, "").split("\n"), toks = [];
+  let i = 0, m;
+  while (i < lines.length) {
+    const l = lines[i];
+    if (/^\s*$/.test(l)) { i++; continue; }
+    if ((m = l.match(FENCE))) {
+      const ind = m[1].length, body = []; i++;
+      while (i < lines.length && !/^\s*```\s*$/.test(lines[i])) { const li = lines[i].match(/^\s*/)[0].length; body.push(lines[i].slice(Math.min(ind, li))); i++; }
+      i++; toks.push({ type: "code", lang: m[2], text: body.join("\n") }); continue;
+    }
+    if ((m = l.match(/^(#{1,6})\s+(.*)$/))) { toks.push({ type: "h", level: m[1].length, text: m[2].trim() }); i++; continue; }
+    if (/^\s*(---+|\*\*\*+)\s*$/.test(l)) { toks.push({ type: "hr" }); i++; continue; }
+    if (/^\s*\|/.test(l)) {
+      const rows = []; while (i < lines.length && /^\s*\|/.test(lines[i])) rows.push(lines[i++]);
+      const cells = r => r.trim().replace(/^\|/, "").replace(/\|$/, "").split("|").map(c => c.trim());
+      toks.push({ type: "table", head: cells(rows[0]), body: rows.slice(2).map(cells) }); continue;
+    }
+    if (LISTM.test(l)) { const r = lexList(lines, i); toks.push(r.tok); i = r.next; continue; }
+    if (/^\s*>/.test(l)) { const b = []; while (i < lines.length && /^\s*>/.test(lines[i])) b.push(lines[i++].replace(/^\s*>\s?/, "")); toks.push({ type: "quote", text: b.join("\n") }); continue; }
+    const p = [l.trim()]; i++;
+    while (i < lines.length && !/^\s*$/.test(lines[i]) && !isBlockStart(lines[i])) p.push(lines[i++].trim());
+    toks.push({ type: "p", text: p.join(" ") });
+  }
+  return toks;
+}
+function lexList(lines, i) {
+  const f = lines[i].match(LISTM), base = f[1].length, ordered = /\d/.test(f[2]), start = ordered ? parseInt(f[2]) : 1;
+  const items = []; let cur = null;
+  while (i < lines.length) {
+    const l = lines[i], m = l.match(LISTM);
+    if (m && m[1].length === base && /\d/.test(m[2]) === ordered) { cur = { lines: [m[3]], ci: m[1].length + m[2].length + 1 }; items.push(cur); i++; continue; }
+    if (/^\s*$/.test(l)) {
+      let j = i + 1; while (j < lines.length && /^\s*$/.test(lines[j])) j++;
+      if (j >= lines.length) break;
+      const ni = lines[j].match(/^\s*/)[0].length, nm = lines[j].match(LISTM);
+      if (ni > base || (nm && nm[1].length === base && /\d/.test(nm[2]) === ordered)) { cur.lines.push(""); i++; continue; }
+      break;
+    }
+    const ind = l.match(/^\s*/)[0].length;
+    if (ind > base) { cur.lines.push(l.slice(Math.min(ind, cur.ci))); i++; continue; }
+    if (!isBlockStart(l)) { cur.lines.push(l.trim()); i++; continue; }
+    break;
+  }
+  return { tok: { type: "list", ordered, start, items: items.map(it => it.lines.join("\n")) }, next: i };
+}
+const FILE_RE = /^(docs\/[\w.-]+\.md|scripts\/[\w.-]+\.py|[\w-]+\.(md|py)|lab\.env(\.example)?|capstone\.env|setup\.sh)$/;
+function codeSpan(c) {
+  if (FILE_RE.test(c)) return `<a class="file" data-file="${esc(c)}"><code>${esc(c)}</code></a>`;
+  if (/^model_gateway\/src\/[\w/.-]+$/.test(c)) {
+    const kind = /\.\w+$/.test(c) ? "blob" : "tree";
+    return `<a href="https://github.com/lightseekorg/smg/${kind}/v1.13.0/${esc(c)}" target="_blank" rel="noopener" title="Open in SMG source (v1.13.0)"><code>${esc(c)}</code></a>`;
+  }
+  return `<code>${esc(c)}</code>`;
+}
+function inline(s) {
+  const codes = [];
+  s = String(s).replace(/`([^`]+)`/g, (_, c) => { codes.push(c); return `\u0000${codes.length - 1}\u0000`; });
+  s = esc(s);
+  s = s.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, (_, t, u) => `<a href="${u}" target="_blank" rel="noopener">${t}</a>`);
+  s = s.replace(/\*\*([^*]+?)\*\*/g, "<strong>$1</strong>");
+  s = s.replace(/(^|[^*\w])\*([^*\s][^*]*?)\*(?!\w)/g, "$1<em>$2</em>");
+  return s.replace(/\u0000(\d+)\u0000/g, (_, n) => codeSpan(codes[n]));
+}
+function renderBlocks(toks) {
+  return toks.map(t => {
+    switch (t.type) {
+      case "h": return `<h${Math.min(6, t.level + 1)}>${inline(t.text)}</h${Math.min(6, t.level + 1)}>`;
+      case "p": return `<p>${inline(t.text)}</p>`;
+      case "hr": return "";
+      case "quote": return `<blockquote>${md(t.text)}</blockquote>`;
+      case "code": return t.lang === "mermaid" ? `<div class="mermaid">${esc(t.text)}</div>` : `<pre class="code">${esc(t.text)}</pre>`;
+      case "table": return `<table><thead><tr>${t.head.map(h => `<th>${inline(h)}</th>`).join("")}</tr></thead><tbody>${t.body.map(r => `<tr>${r.map(c => `<td>${inline(c)}</td>`).join("")}</tr>`).join("")}</tbody></table>`;
+      case "list": { const tag = t.ordered ? "ol" : "ul"; return `<${tag}${t.ordered && t.start !== 1 ? ` start="${t.start}"` : ""}>${t.items.map(it => `<li>${tight(md(it))}</li>`).join("")}</${tag}>`; }
+    }
+    return "";
+  }).join("\n");
+}
+const md = s => renderBlocks(lex(s));
+const tight = h => { const m = h.match(/^<p>([\s\S]*?)<\/p>([\s\S]*)$/); return m && !/<p>/.test(m[1]) ? m[1] + m[2] : h; };
+
+/* ============================================================ shell commands */
+function stripComment(line) {
+  let q = null;
+  for (let i = 0; i < line.length; i++) {
+    const c = line[i];
+    if (q) { if (c === "\\" && q === '"') { i++; continue; } if (c === q) q = null; continue; }
+    if (c === "'" || c === '"') { q = c; continue; }
+    if (c === "\\") { i++; continue; }
+    if (c === "#" && (i === 0 || /\s/.test(line[i - 1]))) return line.slice(0, i).replace(/\s+$/, "");
+  }
+  return line;
+}
+function countRe(s, re) { return (s.match(re) || []).length; }
+function groupShell(text) {
+  const groups = []; let cur = null, here = null, depth = 0;
+  for (const raw of text.split("\n")) {
+    if (here) { cur.lines.push({ t: raw, here: raw.trim() !== here }); if (raw.trim() === here) { here = null; if (depth <= 0) cur = null; } continue; }
+    if (!cur && (/^\s*#/.test(raw) || !raw.trim())) { groups.push({ kind: "comment", lines: [{ t: raw }] }); continue; }
+    if (!cur) { cur = { kind: "cmd", lines: [] }; groups.push(cur); }
+    cur.lines.push({ t: raw });
+    const code = stripComment(raw), hm = code.match(/<<-?\s*['"]?(\w+)['"]?/);
+    if (hm) { here = hm[1]; continue; }
+    depth += countRe(code, /(^|[;\s])(do|then)(?=\s|;|$)/g) - countRe(code, /(^|[;\s])(done|fi)(?=\s|;|$)/g);
+    if (!/\\\s*$/.test(code) && depth <= 0) { cur = null; depth = 0; }
+  }
+  return groups;
+}
+function copyText(g) { return g.lines.map(l => l.here ? l.t : stripComment(l.t)).filter((l, i, a) => l.trim() !== "" || a[i].here).join("\n"); }
+function hlLine(l) {
+  if (l.here) return `<span class="hd">${esc(l.t)}</span>`;
+  const code = stripComment(l.t), cmt = l.t.slice(code.length);
+  let out = "", first = true, m; const re = /('[^']*'?|"(?:\\.|[^"\\])*"?|\s+|[^\s'"]+)/g;
+  while ((m = re.exec(code))) {
+    const t = m[0];
+    if (/^\s+$/.test(t)) out += t;
+    else if (t[0] === "'" || t[0] === '"') out += `<span class="s">${esc(t)}</span>`;
+    else if (first && !/^[\\|]$/.test(t)) { out += `<span class="c">${esc(t)}</span>`; first = /^(\w+=\S*|for|do|then)$/.test(t) && !/^for$/.test(t) ? true : false; }
+    else if (/^--?[\w-]/.test(t)) out += `<span class="f">${esc(t)}</span>`;
+    else { out += esc(t); if (/^(\||&&|;|do|then)$/.test(t) || /;$/.test(t)) first = true; }
+  }
+  return out + (cmt ? `<span class="cm">${esc(cmt)}</span>` : "");
+}
+function termFor(cmd) {
+  if (/ollama serve/.test(cmd)) return { label: "T1", cls: "fg", fg: 1, title: "Terminal 1: runs in the foreground. Leave it running." };
+  if (/smg launch/.test(cmd)) return { label: "T3", cls: "fg", fg: 3, title: "Terminal 3: SMG in the foreground. Leave it running." };
+  if (/ollama_adapter\.py/.test(cmd)) return { label: "T4", cls: "fg", fg: 4, title: "Terminal 4: the adapter in the foreground. Leave it running." };
+  if (/\.venv\/bin\/activate/.test(cmd)) return { label: "ALL", cls: "all", title: "Run this in every terminal you open" };
+  return { label: "T2", cls: "", title: "Terminal 2: your main shell" };
+}
+function subModels(t) {
+  const m = S.models || {};
+  if (m.a && m.a !== "qwen3:0.6b") t = t.split("qwen3:0.6b").join(m.a);
+  if (m.b && m.b !== "llama3.2:1b") t = t.split("llama3.2:1b").join(m.b);
+  return t;
+}
+
+/* ============================================================ coaching layer (per task) */
+const BENCH_T1 = ` conc    ok fail   req/s  out tok/s  TTFT p50  TTFT p99  ITL p50  ITL p99   E2E p50
+    1    16    0    3.37      215.5     110.5     112.2      2.9      3.4     299.2
+    4    16    0    5.01      320.8     579.6     689.0      2.9      3.6     767.3
+    8    32    0    4.95      317.0    1365.1    1469.1      2.9      3.4    1552.4`;
+const EXTRAS = {
+  0: {
+    expect: [
+      { m: /setup\.sh/, out: "…\nEnvironment verified.", t: "The last line must be `Environment verified.` If it isn't, the message above it says what is missing." },
+      { m: /activate/, t: "Your prompt now starts with `(.venv)`. Do this in **every** new terminal." },
+    ],
+  },
+  1: {
+    why: "Before you put a gateway in front of an engine, you need to know the engine. Ollama is easy to run, but by default it serves **one request at a time**, and it has no `/health` or `/metrics` endpoints. Everything SMG does in later tasks builds on, or works around, these facts. The numbers you record here are your baseline.",
+    terms: [["TTFT", "Time to first token: how long until the first word arrives. Includes time spent waiting in a queue."], ["ITL", "Inter-token latency: the gap between tokens while the answer is being generated."], ["E2E", "End to end: the whole request, from send to last token."], ["req/s", "Throughput: finished requests per second."], ["Slot", "One request's seat inside the engine. Default Ollama has one."]],
+    before: [{ m: /bench\.py/, kind: "tip", t: "Before measuring: plug in your laptop, turn off Low Power Mode, and close heavy apps (video calls, many browser tabs). They share the GPU and can halve your numbers." }],
+    expect: [
+      { m: /ollama serve/, out: 'level=INFO … msg="Listening on 127.0.0.1:11500 (version 0.32.…)"', t: "Leave it running in Terminal 1. Every request you send later adds a `[GIN]` log line here." },
+      { m: /11500\/$/, out: "Ollama is running" },
+      { m: /api\/version/, out: '{"version":"0.32.…"}' },
+      { m: /api\/tags/, t: "A JSON list of the models you downloaded (`qwen3:0.6b`, `llama3.2:1b`) with their sizes." },
+      { m: /11500\/v1\/models/, t: 'The same models in OpenAI\'s format: `{"object": "list", "data": [{"id": "qwen3:0.6b", …}]}`.' },
+      { m: /\/health/, out: "HTTP/1.1 404 Not Found", t: "Remember this: Ollama has **no** `/health`. It matters a lot in Task 3." },
+      { m: /\/metrics/, out: "HTTP/1.1 404 Not Found", t: "No `/metrics` either. In Task 5 the gateway's metrics fill this gap." },
+      { m: /api\/chat/, t: 'Ollama\'s **native** API: `"message": {"role": "assistant", "content": "Hi! …"}`.' },
+      { m: /11500\/v1\/chat\/completions(?![\s\S]*reasoning_effort)/, t: 'The OpenAI-compatible API. Look for a `"reasoning"` field: Qwen3 thinks before answering, so with only 20 tokens `content` may be empty.' },
+      { m: /11500\/v1\/chat\/completions[\s\S]*reasoning_effort/, t: "With thinking off there is no `reasoning`, and `content` holds the answer straight away." },
+      { m: /api\/ps/, t: "The loaded model, with `size_vram` (memory in bytes) and `context_length` (8192). You need both for the challenge." },
+      { m: /bench\.py/, out: BENCH_T1, t: "Example from one Mac. Your numbers will differ; the **shape** is the point: req/s stops growing after 4 clients, TTFT keeps climbing, ITL stays flat. The **Results** tab charts your run." },
+      { m: /check\.py 1/, out: "Task 1: done  You should now be able to explain: …" },
+    ],
+  },
+  2: {
+    why: "External mode is SMG's \"I don't run this server, I only forward to it\" mode, meant for providers like OpenAI or Anthropic. It's the simplest way to put SMG in front of Ollama. It shows what a gateway gives you without managing the engine (one URL, auth, model checks) and what it can't do in this mode (health checks, routing policies).",
+    terms: [["Worker", "A server the gateway sends requests to. Here: an Ollama instance."], ["external", "`runtime_type: external`: a provider SMG does not run. SMG skips health probes and routing policies for it."], ["Wildcard mode", "Without a key SMG can't read the worker's model list, so it accepts any model name and forwards it."], ["--api-key", "Works in both directions: clients must send it to SMG, and SMG sends it on to workers."]],
+    before: [
+      { m: /labctl\.py up ollama-a/, kind: "stop", t: "If this says `port 11500 is already in use by something labctl did not start`, your Task 1 `ollama serve` is still running. Press Ctrl-C in Terminal 1 (or `kill <pid>`, with the pid from `lsof -nP -iTCP:11500 -sTCP:LISTEN`), then run it again. The **Live** panel shows who owns each port." },
+      { m: /^A=\$\(grep/, kind: "tip", t: "Run all three lines **in order**. The first saves the current request counts, the second sends 32 requests, and the third (`echo`) prints how they were split. Don't skip the `echo` line: it answers the question." },
+    ],
+    expect: [
+      { m: /labctl\.py up ollama-a/, out: "[lab] starting ollama-a\n  $ OLLAMA_CONTEXT_LENGTH=8192 OLLAMA_KEEP_ALIVE=30m OLLAMA_HOST=127.0.0.1:11500 ollama serve\n[ok]  ollama-a ready on :11500  (log: logs/ollama-a.log)" },
+      { m: /smg launch(?![\s\S]*api-key)/, t: "A burst of `Step started` / `Step succeeded` lines (the worker registration workflow), then `Starting server on 127.0.0.1:30100`. Leave it running and search its output for **wildcard**." },
+      { m: /30100\/readiness/, out: '{"status":"ready","healthy_workers":1,"total_workers":1}' },
+      { m: /30100\/workers \| python/, t: 'One worker with `"runtime_type": "external"` and **no models** listed.' },
+      { m: /30100\/v1\/models$/, out: '{"error":{"type":"server_error","code":"no_models_available","message":"No models available","param":null}}', t: "Yes, this is expected (HTTP 503). Why it's empty is Explain question 3." },
+      { m: /"qwen3:0\.6b","messages":\[\{"role":"user","content":"Say hi"\}\],"max_tokens":20/, t: 'A normal answer. `"system_fingerprint":"fp_ollama"` shows that Ollama produced it and SMG passed it through.' },
+      { m: /^curl -s localhost:30100\/v1\/chat\/completions -H 'Content-Type[\s\S]*nope:1b/, t: "An error that came from **Ollama**, not SMG (Ollama's \"model not found\" wording). In wildcard mode SMG forwards any model name." },
+      { m: /v1\/messages/, out: '{"type":"error","error":{"type":"api_error","message":"Messages API not yet implemented for this router"},…}', t: "Expected. External mode only forwards OpenAI-format requests. In Task 4 (HTTP mode) SMG translates this Anthropic request itself." },
+      { m: /smg launch[\s\S]*--api-key ollama\s*$/, t: "With the key, the log shows `discover_models` reading Ollama's model list." },
+      { m: /head -1$/, out: "HTTP/1.1 401 Unauthorized", t: "No `Authorization` header, so the gateway refuses the client." },
+      { m: /grep -A3 '"models"'/, t: "Now the worker lists its models (`qwen3:0.6b` and anything else you downloaded)." },
+      { m: /"\$H"[\s\S]*nope:1b/, t: "Now **SMG itself** rejects it with `model_not_found`, because it knows the real model list." },
+      { m: /t2_external\.json/, t: "A table like Task 1's. Compare it with `t1_direct.json` in the **Results** tab: the gateway adds very little." },
+      { m: /labctl\.py up ollama-b/, out: "[ok]  ollama-b ready on :11501  (log: logs/ollama-b.log)" },
+      { m: /round_robin$/, t: "Two workers register: `127.0.0.1:11500` and `127.0.0.1:11501`." },
+      { m: /--num-requests 32/, t: "One bench row at concurrency 8, 32 ok." },
+      { m: /^echo "ollama-a/, out: "ollama-a +32  ollama-b +0", t: "All (or nearly all) went to **ollama-a**, even with `--policy round_robin`. Explain question 4 asks why. The Task 2 reel on the right shows it." },
+    ],
+  },
+  3: {
+    why: "Self-hosted HTTP mode is where SMG acts as a real router: it health-checks workers, applies routing policies, retries and circuit-breaks. To manage a worker, SMG first has to prove it's alive by calling `/health`, which Ollama doesn't have. You'll watch registration fail, find the reason in SMG's source, fix it with a 70-line adapter, then measure what each hop costs.",
+    terms: [["Registration workflow", "The steps SMG runs to add a worker: classify, detect connection mode, detect backend, discover metadata, register, activate, update policies."], ["/health", "An endpoint that answers 200 when the server is alive. vLLM and SGLang have it; Ollama doesn't."], ["Adapter", "`scripts/ollama_adapter.py`: adds `/health`, filters `/v1/models` to one model, passes everything else through to Ollama."], ["Hop", "One network step a request passes through. Each adds a little latency."]],
+    before: [{ m: /--health-check-endpoint/, kind: "tip", t: "Stop the Task 2 SMG first (Ctrl-C in Terminal 3). `ollama-a` should still be running from Task 2; check the **Live** panel." }],
+    expect: [
+      { m: /--health-check-endpoint \/api\/version/, t: "Watch for `detect_connection_mode`: SMG requests `/health`, Ollama answers 404, and registration of the worker fails." },
+      { m: /^curl -s localhost:30100\/readiness$/, t: 'With raw Ollama: no healthy workers. Through the adapter (later): `{"status":"ready","healthy_workers":1,"total_workers":1}`.' },
+      { m: /ollama_adapter\.py/, t: "The adapter listens on :11600. Leave it running in Terminal 4." },
+      { m: /11600\/health/, out: "HTTP/1.1 200 OK" },
+      { m: /11600\/v1\/models/, t: "Only **one** model: `qwen3:0.6b`. Explain question 4 asks why the adapter filters." },
+      { m: /smg launch[\s\S]*11600/, t: "This time every registration step succeeds, including `detect_connection_mode`." },
+      { m: /30100\/workers/, t: "The worker is **not** external any more, and it lists `qwen3:0.6b`." },
+      { m: /30100\/v1\/models/, t: "Unlike Task 2, the gateway lists the model: self-hosted models are part of SMG's own inventory." },
+      { m: /grep -i '\^x-'/, out: "x-request-id: …\nx-smg-routed-worker-id: …", t: "Headers SMG adds to every response. Task 4 uses them." },
+      { m: /t3_direct/, t: "Run the three benches back to back. Compare TTFT p50 at concurrency 1: each step down the list is one more hop (a few ms each). The **Results** tab lines them up." },
+      { m: /labctl\.py status/, t: "`ollama-a`, `adapter-a` and `smg` running and ready, all started by labctl." },
+    ],
+  },
+  4: {
+    why: "This is what a gateway gives clients: one URL that speaks several APIs (OpenAI Chat, OpenAI Responses, Anthropic Messages), serves several models, offers stable aliases, and tags every response for tracing. SMG translates the APIs, so Ollama only ever sees chat completions.",
+    terms: [["API translation", "SMG converts Anthropic Messages and OpenAI Responses requests into chat completions, and converts the answers back."], ["Model routing", "Clients name a model; SMG picks a worker that serves it."], ["Alias", "A stable name (like `fast`) that points at a real model. Change the target without touching clients."], ["Tracing headers", "`x-request-id` (yours, or generated) and `x-smg-routed-worker-id` (which worker served it)."]],
+    before: [{ m: /labctl\.py up smg --workers a$/, kind: "tip", t: "From here on labctl runs servers in the background. `python labctl.py status` (or the **Live** panel) shows what's up, and `python labctl.py logs smg` shows SMG's log." }],
+    expect: [
+      { m: /v1\/messages/, t: 'An **Anthropic-shaped** answer: `"type": "message"`, `"content": [{"type": "text", …}]`. SMG translated it to chat completions and back.' },
+      { m: /v1\/responses/, t: 'An OpenAI **Responses** object: `"object": "response"` with an `output` list.' },
+      { m: /"stream":true/, out: 'data: {"id":…,"choices":[{"delta":{"content":"1"}…}]}\n…\ndata: {…"usage":{"prompt_tokens":…,"completion_tokens":…}}\ndata: [DONE]', t: "Tokens arrive as server-sent events. The last chunk before `[DONE]` carries the usage." },
+      { m: /my-trace-42'[\s\S]*grep -i/, out: "x-request-id: my-trace-42\nx-smg-routed-worker-id: …" },
+      { m: /^grep my-trace-42/, t: "SMG's log lines for that request, tagged with your id." },
+      { m: /from openai import OpenAI/, t: "A one-word answer and a usage object, from an unmodified OpenAI SDK pointed at SMG." },
+      { m: /model-alias/, t: "SMG restarts with two workers: adapter-a serves `qwen3:0.6b`, adapter-b serves `llama3.2:1b`." },
+      { m: /v1\/models \| python/, t: "Both models are listed." },
+      { m: /^for m in/, t: "`qwen3:0.6b` and `fast` are routed to adapter-a, and `llama3.2:1b` to adapter-b (see `x-smg-routed-worker-id`). `nope` gets a 404 from **SMG** itself." },
+      { m: /check\.py 4/, t: "This check talks to the running gateway, so leave the multi-model stack (with the alias) running." },
+    ],
+  },
+  5: {
+    why: "Ollama has no metrics, so the gateway becomes your eyes. You'll learn what SMG can measure in HTTP mode (request counts, status codes, durations per worker and model) and what it can't (anything per-token, like TTFT), and how a histogram becomes a percentile.",
+    terms: [["Counter", "A number that only goes up, such as requests per worker. Resets when SMG restarts."], ["Histogram", "Counts per latency bucket. Percentiles are estimated from the buckets."], ["p50 / p99", "The median, and the value 99% of requests beat."], ["Structured logs", "`--log-json`: one JSON object per line, easy to filter by request id."]],
+    expect: [
+      { m: /labctl\.py up adapter-b$/, t: "adapter-b restarts advertising `qwen3:0.6b`, so both workers serve the same model again." },
+      { m: /t5_bench/, t: "Note the client-side E2E p50. You'll compare it with SMG's own number." },
+      { m: /^python metrics\.py$/, out: "gateway metrics from http://127.0.0.1:29100/metrics\n  chat responses by status   200=…\n  requests per worker        http://127.0.0.1:11600=…  http://127.0.0.1:11601=…\n  chat latency (ms, server)  p50=…  p90=…  p99=…\n  …" },
+      { m: /sort -u/, t: "Every metric name SMG exports. Scan it for anything token-level." },
+      { m: /grep -i ttft/, t: "Probably **nothing**. Explain question 1 asks why." },
+      { m: /grep find-me/, out: "INFO logging.rs - started processing request\n…\nINFO logging.rs - finished processing request", t: "Every log line for that one request: level, source file and message." },
+      { m: /--save results\/t5_metrics/, out: "…\nwrote results/t5_metrics.json" },
+    ],
+  },
+  6: {
+    why: "No gateway can fix a badly configured engine. Here you tune Ollama itself: how many requests it runs in parallel (slots), and what that costs in memory (the KV cache). The value you choose goes into `lab.env` and is used by every task after this one.",
+    terms: [["NUM_PARALLEL", "How many slots Ollama runs. Default 1."], ["KV cache", "Per-slot memory that holds attention keys and values for up to a full context."], ["q8_0", "KV cache stored in 8 bits instead of 16: about half the memory, slightly slower. Needs flash attention."], ["Flash attention", "A faster, leaner attention kernel. On by default here."]],
+    before: [
+      { m: /labctl\.py down ollama-b adapter-b/, kind: "tip", t: "The loop restarts Ollama four times and benches each setting. Expect a few minutes; keep the laptop plugged in and leave the GPU alone while it runs." },
+      { m: /^python labctl\.py up ollama-a$/, kind: "tip", t: "Edit `lab.env` first: set `OLLAMA_NUM_PARALLEL=` to your N. `check.py 6` verifies that it is set." },
+    ],
+    expect: [
+      { m: /^for np in/, out: "NUM_PARALLEL=1  memory GB …\nNUM_PARALLEL=2  memory GB …\nNUM_PARALLEL=4  memory GB …\nNUM_PARALLEL=8  memory GB …", t: "Reference Mac memory: 1.5 GB (1 slot), 4.4 GB (4), 8.2 GB (8). The **Results** tab charts req/s and TTFT per setting." },
+      { m: /FLASH_ATTENTION=0$/, t: "Check memory with the `/api/ps` one-liner from the loop after each run." },
+      { m: /KV_CACHE_TYPE=q8_0/, t: "Reference Mac: q8_0 cut 8.2 GB to 4.7 GB, a little slower." },
+      { m: /^python labctl\.py up ollama-a$/, t: "`ollama-a is running with a different config; restarting it`, then ready, now with your `lab.env` values." },
+    ],
+  },
+  7: {
+    why: "With two workers, the gateway decides where each request goes. When requests share a long prefix, like a tenant's system prompt, sending the same prefix to the same worker lets the engine reuse its prompt cache and skip most of the prefill. You'll measure when that pays off and use cache arithmetic to explain it.",
+    terms: [["Routing policy", "How SMG picks a worker: round_robin, random, least_load, cache_aware, …"], ["Prompt cache", "Ollama keeps recent prompt prefixes so it doesn't recompute them: about 32k tokens per worker here."], ["Prefill", "Processing the prompt before the first token. A cache hit skips most of it and lowers TTFT."], ["tree_match", "cache_aware found a worker whose remembered prefixes match this request."]],
+    before: [{ m: /^for T in 8 32/, kind: "tip", t: "This loop runs four full benches with restarts in between: expect **10+ minutes**. Start it, then read `model_gateway/src/policies/cache_aware.rs` while it runs." }],
+    expect: [
+      { m: /labctl\.py up stack/, t: "labctl starts ollama-a/b, adapter-a/b and SMG with `--policy round_robin`." },
+      { m: /^for T in 8 32/, t: "Four bench tables, each followed by a metrics summary. Reference Mac: with 8 tenants cache_aware ≈ 1.14× round_robin; with 32 tenants ≈ 1.32×, and TTFT p50 509 → 243 ms. The **Results** tab charts all four." },
+      { m: /^cp results/, t: "Copies the 32-tenant runs to the file names `check.py 7` looks for." },
+    ],
+  },
+  8: {
+    why: "When more requests arrive than the engines can serve, something has to give. Without limits everything queues inside Ollama, invisible to the gateway, and every client gets slow. Admission control lets the gateway decide: reject fast (429), queue at the gateway with a timeout, or limit how fast requests are admitted.",
+    terms: [["--max-concurrent-requests", "How many requests may be in flight through the gateway at once."], ["Queue", "Where extra requests wait for a free spot: up to `--queue-size` of them, for at most `--queue-timeout-secs`."], ["Token bucket", "Rate limiter: each request spends a token, and tokens refill at a fixed rate."], ["429", "Too Many Requests: an immediate \"not now\" the client can act on."]],
+    expect: [
+      { m: /t8_nolimit/, t: "Everything succeeds, but TTFT is high: 32 clients queue inside Ollama." },
+      { m: /t8_noqueue/, t: "Many failures (429). The requests that **do** succeed have much better TTFT than in the no-limit run." },
+      { m: /metrics\.py \| grep/, t: "429s under status, and the rejection reason under rejections." },
+      { m: /t8_queue/, t: "Fewer rejections: the waiting moved from inside Ollama to the gateway's bounded queue." },
+      { m: /t8_ratelimit/, t: "Requests above 3 per second wait or get rejected. Look at req/s." },
+    ],
+  },
+  9: {
+    why: "Engines crash. The gateway's job is to hide that from clients: retry failed requests on another worker, stop sending traffic to a sick worker (health checks and the circuit breaker), and readmit it carefully once it's back. You'll kill a worker under load and watch.",
+    terms: [["Retry", "Resend a failed request to another worker, if nothing has reached the client yet."], ["Health check", "SMG polls each worker every `--health-check-interval-secs`."], ["Circuit breaker", "After repeated failures SMG stops using a worker (open), later tests it (half-open), then trusts it again (closed)."], ["Idempotent", "Safe to repeat. Retries are only safe for requests without side effects."]],
+    expect: [
+      { m: /t9_direct/, t: "A per-second timeline. Without the gateway, requests fail from the kill (second 8) until the restore (second 18). Reference Mac: 616 failures." },
+      { m: /t9_gateway/, t: "With the gateway: **0** client errors on the reference Mac. Requests that hit the dead worker were retried on the healthy one. The **Results** tab plots both timelines." },
+      { m: /^python metrics\.py$/, t: "Look at `retries (chat)`, `worker health` and `circuit breaker` for the :11601 worker." },
+      { m: /health-check-interval-secs 2/, t: "Faster detection: ollama-b is marked unhealthy within about 2 seconds." },
+      { m: /--disable-retries$/, t: "Now some requests fail (reference Mac: 9) until health checks and the circuit breaker remove ollama-b." },
+    ],
+  },
+  10: {
+    why: "Put it all together. A realistic workload: 16 tenants with long system prompts, requests arriving at random at a fixed rate that keeps ramping up. Your score is the highest rate at which 95% of requests still get their first token within 1.5 s. Tune the engine, routing and admission settings, one change at a time.",
+    terms: [["SLO", "Service level objective: here, TTFT ≤ 1.5 s for at least 95% of requests."], ["Poisson arrivals", "Requests arrive at random times, like real users, not in lock-step."], ["Score", "The highest request rate that still meets the SLO. Rejected requests count as misses."]],
+    summaryBox: true,
+    expect: [
+      { m: /cat capstone\.env/, t: "A deliberately naive config. Read each line and guess which one hurts most." },
+      { m: /^python capstone\.py$/, t: "One row per rate (sent, succeeded, met SLO, attainment, pass/miss), then `new best … -> results/capstone_best.json`. About 2–4 minutes. The **Results** tab charts every run." },
+    ],
+  },
+};
+
+/* ============================================================ reels: a tiny animation engine */
+const RW = 340, RH = 470;
+const C = { req: "#7aa2ff", res: "#4ade80", err: "#f87171", warn: "#fbbf24", vio: "#c084fc", cyan: "#22d3ee", pink: "#f472b6", dim: "#5f687c", text: "#e6e9ef", muted: "#8e97aa", box: "#131a28", line: "#2c3854" };
+const TEN = ["#f87171", "#fbbf24", "#4ade80", "#22d3ee", "#7aa2ff", "#c084fc", "#f472b6", "#a3e635"];
+const clients = (n, { x = 34, y0 = 100, y1 = 390, p = "c" } = {}) => Array.from({ length: n }, (_, i) => ({ id: p + i, kind: "client", x, y: n === 1 ? (y0 + y1) / 2 : y0 + (y1 - y0) * i / (n - 1) }));
+const ids = (n, p = "c") => Array.from({ length: n }, (_, i) => p + i);
+
+class World {
+  constructor(def) {
+    this.nodes = {};
+    def.nodes.forEach(n => { this.nodes[n.id] = Object.assign({ w: 80, h: 60, slots: 0, state: "up", hidden: false }, JSON.parse(JSON.stringify(n)), { busy: [], queue: [] }); });
+    this.links = def.links || []; this.packets = []; this.timers = []; this.floats = []; this.t = 0; this.v = {};
+  }
+  n(id) { return this.nodes[id]; }
+  at(t, fn) { this.timers.push({ t, fn }); }
+  after(dt, fn) { this.at(this.t + dt, fn); }
+  every(dt, fn, start = 0) { const tick = () => { fn(); this.after(dt, tick); }; this.at(start, tick); }
+  send(a, b, o = {}) { const p = Object.assign({ a, b, t0: this.t, dur: 0.5, color: C.req, r: 4.5 }, o); this.packets.push(p); return p; }
+  float(id, text, color = C.text) { this.floats.push({ id, text, color, t0: this.t }); }
+  serve(id, svc, done, color) { const n = this.n(id), j = { svc, done, color }; if (n.busy.length < n.slots) this._run(n, j); else n.queue.push(j); }
+  _run(n, j) { j.t0 = this.t; j.until = this.t + j.svc; n.busy.push(j); }
+  step(dt) {
+    this.t += dt;
+    if (this.timers.length) { const due = this.timers.filter(x => x.t <= this.t); if (due.length) { this.timers = this.timers.filter(x => x.t > this.t); due.sort((a, b) => a.t - b.t).forEach(x => x.fn()); } }
+    const arrived = this.packets.filter(p => this.t - p.t0 >= p.dur);
+    if (arrived.length) { this.packets = this.packets.filter(p => this.t - p.t0 < p.dur); arrived.forEach(p => p.onArrive && p.onArrive()); }
+    for (const n of Object.values(this.nodes)) {
+      if (!n.busy.length) continue;
+      const fin = n.busy.filter(j => j.until <= this.t);
+      if (fin.length) { n.busy = n.busy.filter(j => j.until > this.t); fin.forEach(j => j.done && j.done()); while (n.busy.length < n.slots && n.queue.length) this._run(n, n.queue.shift()); }
+    }
+    this.floats = this.floats.filter(f => this.t - f.t0 < 1.6);
+  }
+}
+/* One request: client -> hops... -> serve at the last hop -> response back the same way. */
+function req(w, o) {
+  const r = { path: [o.from], t0: w.t, o }, final = o.hops.length;
+  const fwd = k => {
+    const cur = r.path[k];
+    if (k > 0 && o.enter) {
+      const v = o.enter(cur, r, w, () => cont(k));
+      if (v === "hold") return;
+      if (v && v.reject) { if (v.text) w.float(cur, v.text, v.color || C.err); r.rejected = true; return back(k, v.color || C.err); }
+    }
+    cont(k);
+  };
+  const cont = k => {
+    const cur = r.path[k];
+    if (k === final) {
+      const fin = () => back(k, o.retColor || C.res);
+      const svc = typeof o.svc === "function" ? o.svc(cur, r, w) : (o.svc ?? 0.4);
+      if (w.n(cur).slots) w.serve(cur, svc, fin, r.color || o.color || C.req); else w.after(svc, fin);
+      return;
+    }
+    let nx = o.hops[k]; if (typeof nx === "function") nx = nx(w, r);
+    r.path.push(nx);
+    const col = k > 0 && o.color2 ? o.color2 : (o.color || C.req);
+    w.send(cur, nx, { color: col, label: k === 0 ? o.label : (o.label2 ?? o.label), onArrive: () => { o.onHop && o.onHop(nx, r, w); fwd(k + 1); } });
+  };
+  const back = (k, color) => {
+    o.leave && o.leave(r.path[k], r, w);
+    if (k === 0) { o.onDone && o.onDone(r, w); return; }
+    w.send(r.path[k], r.path[k - 1], { color, onArrive: () => back(k - 1, color) });
+  };
+  fwd(0); return r;
+}
+/* Closed loop: each client sends its next request as soon as the previous one returns (like bench.py). */
+function loop(w, cs, mk, { think = 0.12, stagger = 0.13, start = 0.1 } = {}) {
+  cs.forEach((c, i) => {
+    const go = () => { const o = mk(c, i, w), od = o.onDone; req(w, Object.assign(o, { from: c, onDone: (r, w2) => { od && od(r, w2); w.after(o.think ?? think, go); } })); };
+    w.at(start + i * stagger, go);
+  });
+}
+const hide = (w, list) => list.forEach(id => w.n(id).hidden = true);
+const showOnly = (w, list) => Object.keys(w.nodes).forEach(id => w.n(id).hidden = !list.includes(id));
+
+/* drawing */
+function rrect(ctx, x, y, w, h, r) { ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); }
+function edgePt(n, to) {
+  const dx = to.x - n.x, dy = to.y - n.y;
+  if (n.kind === "client") { const d = Math.hypot(dx, dy) || 1; return { x: n.x + dx / d * 11, y: n.y + dy / d * 11 }; }
+  const s = Math.min((n.w / 2) / Math.abs(dx || 1e-6), (n.h / 2) / Math.abs(dy || 1e-6), 1);
+  return { x: n.x + dx * s, y: n.y + dy * s };
+}
+function pill(ctx, x, y, text, color, { font = "600 10.5px ui-monospace,Menlo,monospace", bg = 0.16, align = "center" } = {}) {
+  ctx.font = font; const tw = ctx.measureText(text).width, w = tw + 12, h = 17;
+  const x0 = align === "center" ? x - w / 2 : align === "right" ? x - w : x;
+  ctx.fillStyle = hexA(color, bg); rrect(ctx, x0, y - h / 2, w, h, 6); ctx.fill();
+  ctx.strokeStyle = hexA(color, 0.45); ctx.lineWidth = 1; ctx.stroke();
+  ctx.fillStyle = color; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText(text, x0 + w / 2, y + 0.5);
+}
+function hexA(hex, a) { const h = hex.replace("#", ""); const n = parseInt(h.length === 3 ? h.split("").map(c => c + c).join("") : h, 16); return `rgba(${n >> 16 & 255},${n >> 8 & 255},${n & 255},${a})`; }
+function drawNode(ctx, n, w) {
+  if (n.hidden) return;
+  ctx.save();
+  if (n.kind === "client") {
+    ctx.fillStyle = "#172034"; ctx.strokeStyle = n.color || "#3e4d73"; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.arc(n.x, n.y, 10, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = "#7f8fb8"; ctx.beginPath(); ctx.arc(n.x, n.y - 2.5, 3, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(n.x, n.y + 6, 5, Math.PI, 0); ctx.fill();
+    if (n.label) { ctx.fillStyle = C.muted; ctx.font = "10px ui-monospace,Menlo,monospace"; ctx.textAlign = "center"; ctx.fillText(n.label, n.x, n.y + 22); }
+    ctx.restore(); return;
+  }
+  const x = n.x - n.w / 2, y = n.y - n.h / 2;
+  const stroke = n.state === "down" ? C.err : n.state === "warn" ? C.warn : n.state === "hot" ? C.req : n.color || C.line;
+  if (n.state === "hot") { ctx.shadowColor = C.req; ctx.shadowBlur = 18; }
+  ctx.fillStyle = n.state === "dim" ? "#0e131d" : C.box; rrect(ctx, x, y, n.w, n.h, 11); ctx.fill();
+  ctx.shadowBlur = 0; ctx.lineWidth = n.state === "hot" ? 2 : 1.4; ctx.strokeStyle = stroke; ctx.stroke();
+  ctx.textAlign = "center"; ctx.textBaseline = "alphabetic";
+  ctx.fillStyle = n.state === "dim" ? C.dim : C.text; ctx.font = "700 12px -apple-system,BlinkMacSystemFont,sans-serif"; ctx.fillText(n.label || n.id, n.x, y + 17);
+  if (n.sub) { ctx.fillStyle = C.muted; ctx.font = "10px ui-monospace,Menlo,monospace"; ctx.fillText(n.sub, n.x, y + 31); }
+  if (n.slots > 0) {
+    const cols = Math.min(n.slots, 4), rows = Math.ceil(n.slots / 4), gap = 4, cw = (n.w - 16 - (cols - 1) * gap) / cols, ch = 11;
+    const sy = y + n.h - 9 - rows * ch - (rows - 1) * gap;
+    for (let i = 0; i < n.slots; i++) {
+      const cx = x + 8 + (i % 4) * (cw + gap), cy = sy + Math.floor(i / 4) * (ch + gap), j = n.busy[i];
+      ctx.fillStyle = "#0a0e16"; rrect(ctx, cx, cy, cw, ch, 3); ctx.fill(); ctx.strokeStyle = "#2a3550"; ctx.lineWidth = 1; ctx.stroke();
+      if (j) { const p = Math.min(1, (w.t - j.t0) / j.svc); ctx.fillStyle = hexA(j.color || C.req, 0.28); rrect(ctx, cx, cy, cw, ch, 3); ctx.fill(); ctx.fillStyle = j.color || C.req; rrect(ctx, cx, cy, Math.max(3, cw * p), ch, 3); ctx.fill(); }
+    }
+    if (n.slotLabel !== false) { ctx.fillStyle = C.dim; ctx.font = "9px ui-monospace,Menlo,monospace"; ctx.fillText(n.slots === 1 ? "slot" : n.slots + " slots", n.x, sy - 4); }
+  }
+  if (n.cacheCap) {
+    const sz = 13, gap = 4, tot = n.cacheCap * sz + (n.cacheCap - 1) * gap, sx = n.x - tot / 2, cy = y + 40;
+    for (let i = 0; i < n.cacheCap; i++) {
+      ctx.strokeStyle = "#2a3550"; ctx.lineWidth = 1; rrect(ctx, sx + i * (sz + gap), cy, sz, sz, 3); ctx.stroke();
+      const col = (n.cache || [])[i]; if (col) { ctx.fillStyle = col; rrect(ctx, sx + i * (sz + gap) + 1.5, cy + 1.5, sz - 3, sz - 3, 2); ctx.fill(); }
+    }
+  }
+  const q = n.queue.length;
+  if (q) {
+    const per = 9, shown = Math.min(q, 27);
+    for (let i = 0; i < shown; i++) {
+      const col = Math.floor(i / per), row = i % per, qx = x - 10 - col * 9, qy = n.y + (row - (Math.min(q, per) - 1) / 2) * 9;
+      const jc = n.queue[i] && n.queue[i].color; ctx.fillStyle = jc || C.warn; ctx.globalAlpha = 0.9; ctx.beginPath(); ctx.arc(qx, qy, 3.2, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1;
+    }
+    if (n.queueLabel !== false) { ctx.fillStyle = C.warn; ctx.font = "600 9.5px ui-monospace,Menlo,monospace"; ctx.textAlign = "right"; ctx.fillText(`queue ${q}`, x - 6, n.y - Math.min(q, per) * 4.5 - 8); ctx.textAlign = "center"; }
+  }
+  if (n.state === "down") {
+    ctx.strokeStyle = hexA(C.err, 0.8); ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(x + 14, y + 12); ctx.lineTo(x + n.w - 14, y + n.h - 12); ctx.moveTo(x + n.w - 14, y + 12); ctx.lineTo(x + 14, y + n.h - 12); ctx.stroke();
+  }
+  if (n.meter) {
+    const m = n.meter; n._mv = n._mv == null ? m.v : n._mv + (m.v - n._mv) * 0.08;
+    const my = y + n.h + 18, mw = n.w;
+    ctx.fillStyle = C.muted; ctx.font = "10px ui-monospace,Menlo,monospace"; ctx.textAlign = "left"; ctx.fillText(m.label, x, my - 5);
+    ctx.textAlign = "right"; ctx.fillStyle = m.color || C.vio; ctx.fillText(`${n._mv.toFixed(1)} ${m.unit || ""}`, x + mw, my - 5);
+    ctx.fillStyle = "#0b0f18"; rrect(ctx, x, my, mw, 8, 4); ctx.fill(); ctx.fillStyle = m.color || C.vio; rrect(ctx, x, my, Math.max(4, mw * Math.min(1, n._mv / m.max)), 8, 4); ctx.fill();
+    ctx.textAlign = "center";
+  }
+  if (n.badge) pill(ctx, n.x, y - 13, n.badge, n.badgeColor || C.cyan);
+  if (n.count != null) pill(ctx, x + n.w - 2, y + 2, (n.countPrefix ?? "+") + n.count, n.countColor || C.req, { align: "center", bg: 0.25 });
+  ctx.restore();
+}
+function drawWorld(ctx, w, sc, p) {
+  ctx.clearRect(0, 0, RW, RH);
+  ctx.save(); ctx.strokeStyle = "rgba(122,162,255,0.045)"; ctx.lineWidth = 1;
+  for (let x = 10; x < RW; x += 20) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, RH); ctx.stroke(); }
+  for (let y = 10; y < RH; y += 20) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(RW, y); ctx.stroke(); }
+  ctx.restore();
+  ctx.save(); ctx.setLineDash([3, 5]); ctx.strokeStyle = "rgba(140,160,210,0.16)"; ctx.lineWidth = 1;
+  for (const [a, b] of w.links) { const A = w.n(a), B = w.n(b); if (!A || !B || A.hidden || B.hidden) continue; ctx.beginPath(); ctx.moveTo(A.x, A.y); ctx.lineTo(B.x, B.y); ctx.stroke(); }
+  ctx.restore();
+  Object.values(w.nodes).forEach(n => drawNode(ctx, n, w));
+  for (const pk of w.packets) {
+    const A = w.n(pk.a), B = w.n(pk.b); if (!A || !B) continue;
+    const u = Math.min(1, (w.t - pk.t0) / pk.dur), e = u < 0.5 ? 2 * u * u : 1 - Math.pow(-2 * u + 2, 2) / 2;
+    const s = edgePt(A, B), t = edgePt(B, A); let x = s.x + (t.x - s.x) * e, y = s.y + (t.y - s.y) * e;
+    if (pk.arc) { const dx = t.x - s.x, dy = t.y - s.y, d = Math.hypot(dx, dy) || 1, k = Math.sin(Math.PI * e) * pk.arc; x += -dy / d * k; y += dx / d * k; }
+    ctx.save(); ctx.shadowColor = pk.color; ctx.shadowBlur = 10; ctx.fillStyle = pk.color; ctx.beginPath(); ctx.arc(x, y, pk.r, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+    if (pk.label) { ctx.save(); pill(ctx, x, y - 13, pk.label, pk.color, { font: "600 9.5px ui-monospace,Menlo,monospace", bg: 0.2 }); ctx.restore(); }
+  }
+  for (const f of w.floats) {
+    const n = w.n(f.id); if (!n) continue; const age = w.t - f.t0;
+    ctx.save(); ctx.globalAlpha = Math.max(0, 1 - age / 1.6);
+    const yy = (n.kind === "client" ? n.y - 18 : n.y - n.h / 2 - 32) - age * 16;
+    pill(ctx, n.x + (f.dx || 0), yy, f.text, f.color, { font: "700 10.5px ui-monospace,Menlo,monospace", bg: 0.22 });
+    ctx.restore();
+  }
+  sc.draw && sc.draw(ctx, w, p);
+}
+
+class Reel {
+  constructor(host, def) {
+    this.def = def; this.host = host;
+    host.innerHTML = `<div class="reel"><div class="reel-bars">${def.scenes.map((_, i) => `<div data-i="${i}"><i></i></div>`).join("")}</div>
+      <div class="reel-title"><div>${esc(def.title)}</div><span>${esc(def.tag || "")}</span></div>
+      <canvas></canvas><div class="reel-cap"></div>
+      <div class="reel-ctl"><button data-a="prev" title="Previous scene">‹</button><button data-a="play" title="Play / pause">❚❚</button><button data-a="next" title="Next scene">›</button></div></div>`;
+    this.cv = host.querySelector("canvas"); this.cap = host.querySelector(".reel-cap"); this.bars = [...host.querySelectorAll(".reel-bars i")];
+    const dpr = Math.min(2, window.devicePixelRatio || 1); this.cv.width = RW * dpr; this.cv.height = RH * dpr; this.cv.style.aspectRatio = `${RW}/${RH}`;
+    this.ctx = this.cv.getContext("2d"); this.ctx.scale(dpr, dpr);
+    this.playing = true; this.alive = true;
+    host.querySelector(".reel-bars").onclick = e => { const d = e.target.closest("[data-i]"); if (d) this.go(+d.dataset.i); };
+    host.querySelector(".reel-ctl").onclick = e => {
+      const a = e.target.dataset.a; if (!a) return;
+      if (a === "play") { this.playing = !this.playing; e.target.textContent = this.playing ? "❚❚" : "▶"; }
+      if (a === "prev") this.go(this.i - 1);
+      if (a === "next") this.go(this.i + 1);
+    };
+    this.go(0); this.last = performance.now();
+    const frame = ts => { if (!this.alive) return; this.tick(ts); requestAnimationFrame(frame); };
+    requestAnimationFrame(frame);
+  }
+  go(i) {
+    const n = this.def.scenes.length; this.i = ((i % n) + n) % n;
+    this.sc = this.def.scenes[this.i]; this.w = new World(this.def);
+    if (this.def.base) this.def.base(this.w);
+    this.sc.setup && this.sc.setup(this.w);
+    this.cap.innerHTML = esc(this.sc.cap).replace(/\*\*(.+?)\*\*/g, "<b>$1</b>").replace(/\*(.+?)\*/g, "<i>$1</i>");
+    this.bars.forEach((b, k) => b.style.width = k < this.i ? "100%" : "0");
+  }
+  tick(ts) {
+    let dt = Math.min(0.05, (ts - this.last) / 1000); this.last = ts;
+    if (!this.playing || document.hidden) dt = 0;
+    if (dt) { const sub = 2; for (let k = 0; k < sub; k++) this.w.step(dt / sub); }
+    const p = Math.min(1, this.w.t / this.sc.dur);
+    drawWorld(this.ctx, this.w, this.sc, p);
+    this.bars[this.i].style.width = (p * 100) + "%";
+    if (this.w.t >= this.sc.dur) this.go(this.i + 1);
+  }
+  destroy() { this.alive = false; }
+}
+
+/* ---------- the reels, one per task ---------- */
+const REELS = {};
+REELS[0] = {
+  title: "The lab loop", tag: "every task",
+  nodes: [["predict", "Predict", "write it down"], ["do", "Do", "type it yourself"], ["observe", "Observe", "compare"], ["explain", "Explain", "answer, then reveal"], ["check", "Check", "check.py"]]
+    .map(([id, label, sub], i) => { const a = (-90 + i * 72) * Math.PI / 180; return { id, label, sub, x: 170 + Math.cos(a) * 120, y: 230 + Math.sin(a) * 135, w: 104, h: 46, state: "dim" }; }),
+  links: [["predict", "do"], ["do", "observe"], ["observe", "explain"], ["explain", "check"], ["check", "predict"]],
+  scenes: ["**Predict** first. Write down what you expect *before* you run anything. A wrong guess is the best teacher.",
+    "**Do**: type every command yourself, in the terminal shown on its left (T1, T2, T3, T4).",
+    "**Observe**: compare what happened with your prediction. Each command shows what you should see.",
+    "**Explain**: answer the questions in your own words, then reveal the reference answer.",
+    "**Check**: run check.py from the page. It confirms your results are saved, then you move on."]
+    .map((cap, i) => ({
+      dur: 3.6, cap, setup(w) {
+        const order = ["predict", "do", "observe", "explain", "check"], id = order[i], prev = order[(i + 4) % 5];
+        w.n(prev).state = "up";
+        w.send(prev, id, { dur: 0.9, color: C.vio, r: 6, onArrive: () => { w.n(id).state = "hot"; w.float(id, ["guess", "run", "look", "why?", "✓ saved"][i], C.vio); } });
+      },
+      draw(ctx) { ctx.fillStyle = C.dim; ctx.font = "600 11px ui-monospace,Menlo,monospace"; ctx.textAlign = "center"; ctx.fillText("predict · do · observe", 170, 222); ctx.fillText("explain · check", 170, 238); },
+    })),
+};
+REELS[1] = {
+  title: "One slot, one request at a time", tag: "Task 1",
+  nodes: [...clients(8), { id: "o", label: "Ollama :11500", sub: "default settings", x: 245, y: 245, w: 140, h: 120, slots: 1 }],
+  base(w) { w.links = ids(8).map(c => [c, "o"]); },
+  scenes: [
+    { dur: 6, cap: "With **1 client**, each request goes straight into Ollama's only **slot**.", setup(w) { hide(w, ids(8).slice(1)); w.n("o").badge = "TTFT ≈ 110 ms"; loop(w, ["c0"], () => ({ hops: ["o"], svc: 0.9 })); } },
+    { dur: 7, cap: "**8 clients** at once. Ollama still runs **one request at a time**.", setup(w) { loop(w, ids(8), () => ({ hops: ["o"], svc: 0.5 })); } },
+    { dur: 7, cap: "The rest **wait in a queue**, so TTFT grows with your place in line.", setup(w) { w.n("o").badge = "TTFT ≈ 1.4 s at 8 clients"; w.n("o").badgeColor = C.warn; loop(w, ids(8), () => ({ hops: ["o"], svc: 0.5 })); } },
+    { dur: 7, cap: "The one running request decodes at full speed: **ITL stays flat**, and req/s stops growing.", setup(w) { w.n("o").badge = "ITL ≈ 3 ms · req/s flat"; w.n("o").badgeColor = C.res; loop(w, ids(8), () => ({ hops: ["o"], svc: 0.5 })); } },
+  ],
+};
+REELS[2] = {
+  title: "External mode", tag: "Task 2",
+  nodes: [...clients(4, { y0: 150, y1: 340 }), { id: "smg", label: "SMG", sub: "--backend openai", x: 160, y: 245, w: 100, h: 76 },
+    { id: "A", label: "Ollama A", sub: ":11500", x: 280, y: 150, w: 92, h: 66 }, { id: "B", label: "Ollama B", sub: ":11501", x: 280, y: 340, w: 92, h: 66 }],
+  base(w) { w.links = [...ids(4).map(c => [c, "smg"]), ["smg", "A"], ["smg", "B"]]; },
+  scenes: [
+    { dur: 6, cap: "Without **--api-key**, SMG can't read Ollama's model list, so it runs in **wildcard mode** and accepts any model name.",
+      setup(w) { hide(w, ["c1", "c2", "c3", "B"]); w.n("smg").badge = "models: * (wildcard)"; w.n("smg").badgeColor = C.warn; loop(w, ["c0"], () => ({ hops: ["smg", "A"], svc: 0.5, label: "qwen3" }), { think: 0.5 }); } },
+    { dur: 6, cap: "Ask for **nope:1b**: SMG forwards it anyway, and **Ollama** answers with the error.",
+      setup(w) { hide(w, ["c1", "c2", "c3", "B"]); w.n("smg").badge = "models: * (wildcard)"; w.n("smg").badgeColor = C.warn;
+        loop(w, ["c0"], () => ({ hops: ["smg", "A"], label: "nope:1b", color: C.pink, enter: id => id === "A" ? { reject: 1, text: "Ollama: not found" } : null }), { think: 1.2 }); } },
+    { dur: 7, cap: "With **--api-key**, SMG calls Ollama's /v1/models and learns the real list. Now **SMG itself** rejects nope:1b.",
+      setup(w) { hide(w, ["c1", "c2", "c3", "B"]); const s = w.n("smg"); s.badge = "models: ?"; s.badgeColor = C.muted;
+        w.at(0.3, () => w.send("smg", "A", { label: "GET /v1/models", color: C.cyan, dur: 0.7, onArrive: () => w.send("A", "smg", { color: C.res, dur: 0.7, onArrive: () => { s.badge = "models: qwen3:0.6b, …"; s.badgeColor = C.res; } }) }));
+        w.every(1.6, () => req(w, { from: "c0", hops: ["smg", "A"], label: "nope:1b", color: C.pink, enter: id => id === "smg" ? { reject: 1, text: "model_not_found" } : null }), 2.1); } },
+    { dur: 5, cap: "The same key guards the gateway: a client **without it gets 401**.",
+      setup(w) { hide(w, ["c2", "c3", "B"]); w.n("c1").label = "no key"; w.n("smg").badge = "--api-key ollama"; w.n("smg").badgeColor = C.res;
+        loop(w, ["c0"], () => ({ hops: ["smg", "A"], svc: 0.5, label: "key ✓" }), { think: 0.6 });
+        w.every(1.4, () => req(w, { from: "c1", hops: ["smg", "A"], color: C.pink, enter: id => id === "smg" ? { reject: 1, text: "401" } : null }), 0.6); } },
+    { dur: 7, cap: "Two workers and **--policy round_robin**... yet the requests all land on **A**.",
+      setup(w) { w.n("A").count = 0; w.n("B").count = 0; loop(w, ids(4), () => ({ hops: ["smg", "A"], svc: 0.35, onHop: id => { if (id === "A") w.n("A").count++; } })); } },
+    { dur: 7, cap: "External workers are picked by **lowest load, and ties go to the first one**. The policy is never consulted.",
+      setup(w) { w.n("A").count = 0; w.n("B").count = 0; w.n("smg").badge = "min_by_key(load)"; loop(w, ids(4), () => ({ hops: ["smg", "A"], svc: 0.35, onHop: id => { if (id === "A") w.n("A").count++; } })); } },
+  ],
+};
+REELS[3] = {
+  title: "Why /health matters", tag: "Task 3",
+  nodes: [{ id: "c0", kind: "client", x: 26, y: 250 }, { id: "smg", label: "SMG", sub: "--backend vllm", x: 104, y: 250, w: 82, h: 76 },
+    { id: "ad", label: "Adapter", sub: ":11600", x: 204, y: 250, w: 78, h: 76 }, { id: "o", label: "Ollama", sub: ":11500", x: 296, y: 250, w: 76, h: 76 }],
+  base(w) { w.links = [["c0", "smg"], ["smg", "ad"], ["ad", "o"]]; },
+  scenes: [
+    { dur: 6, cap: "Before SMG sends user traffic to a self-hosted worker, it probes **GET /health** to prove the worker is alive.",
+      setup(w) { hide(w, ["c0", "ad"]); w.links = [["smg", "o"]]; const probe = () => w.send("smg", "o", { label: "GET /health", color: C.cyan, dur: 0.8, onArrive: () => { w.float("o", "404", C.err); w.send("o", "smg", { color: C.err, dur: 0.8, onArrive: () => { w.n("smg").state = "warn"; w.float("smg", "registration failed", C.err); } }); } }); w.at(0.4, probe); w.at(3.3, probe); } },
+    { dur: 6, cap: "Ollama has no /health. **--health-check-endpoint** doesn't help here: the registration probe always uses **/health**.",
+      setup(w) { hide(w, ["c0", "ad"]); w.links = [["smg", "o"]]; w.n("smg").badge = "probe: /health (fixed)"; w.n("smg").badgeColor = C.warn; const probe = () => w.send("smg", "o", { label: "GET /health", color: C.cyan, dur: 0.8, onArrive: () => { w.float("o", "404", C.err); w.send("o", "smg", { color: C.err, dur: 0.8, onArrive: () => { w.n("smg").state = "warn"; w.float("smg", "detect_connection_mode ✗", C.err); } }); } }); w.at(0.4, probe); w.at(3.3, probe); } },
+    { dur: 6, cap: "The **adapter** answers /health and passes everything else through to Ollama.",
+      setup(w) { hide(w, ["c0"]); w.at(0.4, () => w.send("smg", "ad", { label: "GET /health", color: C.cyan, dur: 0.8, onArrive: () => { w.float("ad", "200 OK", C.res); w.send("ad", "smg", { color: C.res, dur: 0.8, onArrive: () => { w.n("smg").state = "up"; w.n("smg").color = C.res; w.float("smg", "registered ✓", C.res); } }); } })); } },
+    { dur: 7, cap: "Now chat flows SMG → adapter → Ollama. Each hop adds only **a few milliseconds**.",
+      setup(w) { w.n("smg").color = C.res; w.n("smg").badge = "+ few ms"; w.n("ad").badge = "+ few ms"; w.n("o").badge = "TTFT ~100 ms"; w.n("o").badgeColor = C.muted; loop(w, ["c0"], () => ({ hops: ["smg", "ad", "o"], svc: 0.6 }), { think: 0.25 }); } },
+  ],
+};
+REELS[4] = {
+  title: "One gateway, many APIs", tag: "Task 4",
+  nodes: [{ id: "m", label: "Anthropic", sub: "/v1/messages", x: 56, y: 140, w: 96, h: 46 }, { id: "rs", label: "OpenAI", sub: "/v1/responses", x: 56, y: 250, w: 96, h: 46 },
+    { id: "sdk", label: "OpenAI SDK", sub: "/v1/chat/…", x: 56, y: 360, w: 96, h: 46 }, { id: "smg", label: "SMG", sub: "translate + route", x: 184, y: 250, w: 86, h: 84 },
+    { id: "A", label: "Worker A", sub: "qwen3:0.6b", x: 288, y: 165, w: 88, h: 62 }, { id: "B", label: "Worker B", sub: "llama3.2:1b", x: 288, y: 335, w: 88, h: 62 }],
+  links: [["m", "smg"], ["rs", "smg"], ["sdk", "smg"], ["smg", "A"], ["smg", "B"]],
+  scenes: [
+    { dur: 7, cap: "Three client APIs come in. SMG **translates** each into chat completions, the only thing Ollama needs to speak.",
+      setup(w) { const cols = { m: C.vio, rs: C.cyan, sdk: C.req }; w.n("smg").badge = "→ chat completions"; loop(w, ["m", "rs", "sdk"], c => ({ hops: ["smg", "A"], color: cols[c], color2: C.req, svc: 0.45, label: { m: "messages", rs: "responses", sdk: "chat" }[c], label2: "chat" }), { think: 0.5, stagger: 0.4 }); } },
+    { dur: 7, cap: "Clients name a **model**. SMG picks the **worker** that serves it.",
+      setup(w) { let k = 0; loop(w, ["m", "rs", "sdk"], () => { const mdl = (k++ % 2) ? "llama3.2" : "qwen3"; return { hops: ["smg", (w2, r) => r.o.label === "qwen3" ? "A" : "B"], label: mdl, color: mdl === "qwen3" ? C.req : C.vio, svc: 0.45 }; }, { think: 0.5, stagger: 0.35 }); } },
+    { dur: 7, cap: "**fast** is an alias for qwen3:0.6b. An unknown model, **nope**, gets a 404 from SMG itself.",
+      setup(w) { w.n("smg").badge = "alias fast → qwen3"; let k = 0; loop(w, ["m", "rs", "sdk"], () => { const mdl = ["fast", "nope", "fast"][k++ % 3]; return { hops: ["smg", "A"], label: mdl, color: mdl === "nope" ? C.pink : C.req, svc: 0.45, enter: id => id === "smg" && mdl === "nope" ? { reject: 1, text: "404 model_not_found" } : null }; }, { think: 0.7, stagger: 0.45 }); } },
+    { dur: 6, cap: "Every response says who served it: **x-smg-routed-worker-id**. Debugging without searching logs.",
+      setup(w) { let k = 0; loop(w, ["m", "rs", "sdk"], () => { const tgt = (k++ % 2) ? "B" : "A"; return { hops: ["smg", tgt], svc: 0.4, onDone: (r, w2) => w2.float(r.path[0], "worker " + tgt, tgt === "A" ? C.req : C.vio) }; }, { think: 0.6, stagger: 0.4 }); } },
+  ],
+};
+const HB = [0.25, 0.5, 1, 2, Infinity];
+REELS[5] = {
+  title: "What the gateway can see", tag: "Task 5",
+  nodes: [...clients(4, { y0: 90, y1: 260 }), { id: "smg", label: "SMG", sub: ":29100/metrics", x: 160, y: 175, w: 96, h: 78 },
+    { id: "A", label: "Worker A", x: 285, y: 115, w: 86, h: 56 }, { id: "B", label: "Worker B", x: 285, y: 235, w: 86, h: 56 }],
+  base(w) { w.links = [...ids(4).map(c => [c, "smg"]), ["smg", "A"], ["smg", "B"]]; w.v.hist = HB.map(() => 0); w.v.ok = 0; w.v.rr = 0; },
+  scenes: [],
+};
+function obsLoop(w, extra = {}) {
+  w.n("A").count = 0; w.n("B").count = 0;
+  loop(w, ids(4), () => ({ hops: ["smg", () => (w.v.rr++ % 2 ? "B" : "A")], svc: () => 0.25 + Math.random() * 0.9,
+    onHop: id => { if (id === "A" || id === "B") w.n(id).count++; },
+    onDone: r => { w.v.ok++; w.n("smg").badge = extra.badge || `200 × ${w.v.ok}`; const d = w.t - r.t0; w.v.hist[HB.findIndex(b => d <= b)]++; }, ...extra.o }), { think: 0.1 });
+}
+function drawHist(ctx, w) {
+  const x0 = 34, y0 = 440, wd = 280, hmax = 110, max = Math.max(4, ...w.v.hist), bw = wd / HB.length - 10;
+  ctx.fillStyle = C.muted; ctx.font = "600 10.5px ui-monospace,Menlo,monospace"; ctx.textAlign = "left"; ctx.fillText("smg_router_request_duration_seconds", x0, y0 - hmax - 22);
+  HB.forEach((b, i) => {
+    const h = hmax * w.v.hist[i] / max, x = x0 + i * (bw + 10);
+    ctx.fillStyle = "#0b0f18"; rrect(ctx, x, y0 - hmax, bw, hmax, 5); ctx.fill();
+    ctx.fillStyle = C.cyan; rrect(ctx, x, y0 - h, bw, Math.max(2, h), 5); ctx.fill();
+    ctx.fillStyle = C.dim; ctx.font = "9.5px ui-monospace,Menlo,monospace"; ctx.textAlign = "center"; ctx.fillText(b === Infinity ? "+Inf" : "≤" + b + "s", x + bw / 2, y0 + 12);
+    ctx.fillStyle = C.text; ctx.fillText(w.v.hist[i], x + bw / 2, y0 - h - 5);
+  });
+}
+REELS[5].scenes = [
+  { dur: 6, cap: "SMG counts every request: by **status**, **worker** and **model**. Ollama alone gave you none of this.", setup(w) { obsLoop(w); } },
+  { dur: 7, cap: "Durations land in **histogram buckets**. p50 and p99 are interpolated from the buckets, so they are **estimates**.", setup(w) { obsLoop(w); }, draw: drawHist },
+  { dur: 7, cap: "In HTTP mode SMG forwards bytes. It never sees individual tokens, so there's **no TTFT metric**.", setup(w) { obsLoop(w, { badge: "TTFT: not measured" }); w.n("smg").badgeColor = C.warn; }, draw: drawHist },
+  { dur: 6, cap: "That's why **bench.py** measures TTFT on the client side, where the first token actually arrives.", setup(w) { obsLoop(w, { o: { onDone: (r, w2) => { if (Math.random() < 0.35) w2.float(r.path[0], "TTFT ✓", C.res); } } }); } },
+];
+REELS[6] = {
+  title: "Slots and memory", tag: "Task 6",
+  nodes: [...clients(8), { id: "o", label: "Ollama", sub: "NUM_PARALLEL=1", x: 238, y: 232, w: 150, h: 150, slots: 1, meter: { label: "memory", v: 1.5, max: 9, unit: "GB" } }],
+  base(w) { w.links = ids(8).map(c => [c, "o"]); },
+  scenes: [
+    [1, 0.5, 1.5, "**NUM_PARALLEL=1**: one slot. With 8 clients, 7 of them are always waiting.", null],
+    [4, 1.1, 4.4, "**NUM_PARALLEL=4**: four slots are decoded together, as one batch.", null],
+    [8, 2.0, 8.2, "Each slot reserves KV cache for a **full context**, so memory ≈ slots × context length.", null],
+    [4, 1.1, 4.4, "Each batched step does more work, so **ITL rises**: about **1.8×** the throughput at 4 slots, not 4×.", "ITL ↑ · ≈1.8× req/s"],
+    [8, 2.2, 4.7, "**q8_0 KV cache** stores keys and values in 8 bits: about half the KV memory, a little slower.", "q8_0"],
+  ].map(([slots, svc, mem, cap, badge]) => ({ dur: 7, cap, setup(w) { const o = w.n("o"); o.slots = slots; o.sub = `NUM_PARALLEL=${slots}`; o.meter.v = mem; o._mv = mem; if (badge) { o.badge = badge; o.badgeColor = badge === "q8_0" ? C.vio : C.warn; } loop(w, ids(8), () => ({ hops: ["o"], svc: svc * (0.9 + Math.random() * 0.2) })); } })),
+};
+function cacheTouch(n, col) {
+  n.cache = n.cache || []; const i = n.cache.indexOf(col);
+  if (i >= 0) { n.cache.splice(i, 1); n.cache.push(col); n.hits = (n.hits || 0) + 1; return true; }
+  n.cache.push(col); if (n.cache.length > n.cacheCap) n.cache.shift(); n.miss = (n.miss || 0) + 1; return false;
+}
+function tenantLoop(w, tenants, policy) {
+  let k = 0;
+  loop(w, ids(4), () => {
+    const t = Math.floor(Math.random() * tenants), col = TEN[t];
+    return { color: col, hops: ["smg", () => policy === "rr" ? (k++ % 2 ? "B" : "A") : (t % 2 ? "B" : "A")],
+      onHop: (id, r) => { if (id === "A" || id === "B") { const n = w.n(id), hit = cacheTouch(n, col); r.hit = hit; w.float(id, hit ? "hit" : "miss", hit ? C.res : C.err); n.badge = `hits ${n.hits || 0} · misses ${n.miss || 0}`; n.badgeColor = (n.hits || 0) >= (n.miss || 0) ? C.res : C.err; } },
+      svc: (id, r) => r.hit ? 0.35 : 1.1 };
+  }, { think: 0.05 });
+}
+REELS[7] = {
+  title: "Cache-aware routing", tag: "Task 7",
+  nodes: [...clients(4, { y0: 150, y1: 340 }), { id: "smg", label: "SMG", sub: "policy", x: 158, y: 245, w: 88, h: 70 },
+    { id: "A", label: "Worker A", sub: "prompt cache", x: 282, y: 150, w: 100, h: 92, cacheCap: 4, slots: 2, slotLabel: false },
+    { id: "B", label: "Worker B", sub: "prompt cache", x: 282, y: 345, w: 100, h: 92, cacheCap: 4, slots: 2, slotLabel: false }],
+  base(w) { w.links = [...ids(4).map(c => [c, "smg"]), ["smg", "A"], ["smg", "B"]]; },
+  scenes: [
+    { dur: 8, cap: "Each color is one tenant's long system prompt. With **few tenants**, they all fit in every worker's cache, so any policy gets hits.", setup(w) { w.n("smg").sub = "round_robin"; tenantLoop(w, 3, "rr"); } },
+    { dur: 9, cap: "**Many tenants + round_robin**: every tenant visits both workers, the caches keep evicting, and requests **miss** (slow prefill).", setup(w) { w.n("smg").sub = "round_robin"; tenantLoop(w, 8, "rr"); } },
+    { dur: 9, cap: "**cache_aware** remembers which worker holds which prefix, and sends each tenant back there: mostly **hits**.", setup(w) { w.n("smg").sub = "cache_aware"; w.n("smg").badge = "tree_match"; w.n("smg").badgeColor = C.res; tenantLoop(w, 8, "ca"); } },
+    { dur: 6, cap: "Reference Mac, 32 tenants: cache_aware gave **1.32× req/s** and **half the TTFT**. With 8 tenants the gap was small.", setup(w) { w.n("smg").sub = "cache_aware"; tenantLoop(w, 8, "ca"); } },
+  ],
+};
+function gateLoop(w, { limit = Infinity, qsize = 0, rate = 0 }) {
+  const g = w.n("smg"); g.inflight = 0; g.tokens = 2; g.queue = [];
+  if (rate) w.every(1 / rate, () => { g.tokens = Math.min(2, g.tokens + 1); });
+  const upd = () => { g.badge = rate ? `tokens ${"●".repeat(Math.floor(g.tokens))}${"○".repeat(2 - Math.floor(g.tokens))}` : limit === Infinity ? "admit all" : `in flight ${g.inflight}/${limit}`; g.badgeColor = g.inflight >= limit ? C.warn : C.cyan; };
+  upd();
+  loop(w, ids(10), () => ({ hops: ["smg", "o"], svc: 0.9,
+    enter: (id, r, w2, cont) => {
+      if (id !== "smg") return null;
+      if (rate) { if (g.tokens >= 1) { g.tokens--; upd(); return null; } return { reject: 1, text: "429" }; }
+      if (g.inflight < limit) { g.inflight++; r.adm = 1; upd(); return null; }
+      if (g.queue.length < qsize) { g.queue.push({ color: C.warn, go: () => { g.inflight++; r.adm = 1; upd(); cont(); } }); return "hold"; }
+      return { reject: 1, text: "429" };
+    },
+    leave: (id, r) => { if (id === "smg" && r.adm && !r.rel) { r.rel = 1; g.inflight--; const nx = g.queue.shift(); if (nx) nx.go(); upd(); } },
+    think: 0.3 }), { stagger: 0.08 });
+}
+REELS[8] = {
+  title: "Admission control", tag: "Task 8",
+  nodes: [...clients(10, { y0: 70, y1: 410 }), { id: "smg", label: "SMG", sub: "admission", x: 168, y: 240, w: 90, h: 84 }, { id: "o", label: "Engines", sub: "4 slots total", x: 285, y: 240, w: 92, h: 110, slots: 4 }],
+  base(w) { w.links = [...ids(10).map(c => [c, "smg"]), ["smg", "o"]]; },
+  scenes: [
+    { dur: 7, cap: "**No limit**: SMG admits everything. Requests pile up **inside Ollama**, where the gateway can't see them, and everyone waits.", setup(w) { w.n("o").badge = "TTFT ↑↑"; w.n("o").badgeColor = C.err; gateLoop(w, {}); } },
+    { dur: 7, cap: "**--max-concurrent-requests 4 --queue-size 0**: anything over the limit gets a **429 instantly**.", setup(w) { gateLoop(w, { limit: 4 }); } },
+    { dur: 6, cap: "Admitted requests run at **near-unloaded speed**. A fast 429 is information; a 10-second wait is not.", setup(w) { w.n("o").badge = "TTFT ✓ (admitted)"; w.n("o").badgeColor = C.res; gateLoop(w, { limit: 4 }); } },
+    { dur: 7, cap: "Add **--queue-size**: extra requests **wait at the gateway** (with a timeout) instead of inside the engine.", setup(w) { gateLoop(w, { limit: 4, qsize: 5 }); } },
+    { dur: 7, cap: "**--rate-limit-tokens-per-second** caps how fast requests are admitted: a token bucket.", setup(w) { gateLoop(w, { rate: 2.5 }); } },
+  ],
+};
+function chaosLoop(w, { retries = true, cbTimeout = 3, downAt = null, upAt = null, startOpen = false } = {}) {
+  const A = w.n("A"), B = w.n("B"); w.v.err = 0; w.v.retry = 0; w.v.rr = 0;
+  B.cb = startOpen ? "open" : "closed"; B.fails = 0; B.succ = 0;
+  const setCb = s => { B.cb = s; B.badge = { open: "circuit OPEN", "half-open": "half-open", closed: "circuit closed" }[s]; B.badgeColor = { open: C.err, "half-open": C.warn, closed: C.res }[s]; if (s === "open") w.after(cbTimeout, () => setCb("half-open")); };
+  if (startOpen) setCb("open"); else B.badge = null;
+  if (downAt != null) w.at(downAt, () => { B.state = "down"; });
+  if (upAt != null) w.at(upAt, () => { B.state = "up"; w.float("B", "back up", C.res); });
+  const pick = () => { if (B.cb === "open") return "A"; if (B.cb === "half-open") return (w.v.rr++ % 3 === 0) ? "B" : "A"; return (w.v.rr++ % 2) ? "B" : "A"; };
+  const fail = () => { B.fails++; if (B.cb !== "open" && B.fails >= 3) { B.fails = 0; setCb("open"); } };
+  const okB = () => { if (B.cb === "half-open") { B.succ++; if (B.succ >= 2) { B.succ = 0; setCb("closed"); } } B.fails = 0; };
+  ids(4).forEach((c, i) => {
+    const go = () => w.send(c, "smg", { onArrive: () => toW(pick(), 0) });
+    const reply = (col) => w.send("smg", c, { color: col, onArrive: () => w.after(0.12, go) });
+    const toW = (t, att) => w.send("smg", t, { color: att ? C.warn : C.req, arc: att ? 26 : 0, label: att ? "retry" : null, onArrive: () => {
+      const n = w.n(t);
+      if (n.state === "down") { w.float(t, "connect refused", C.err); if (t === "B") fail(); w.send(t, "smg", { color: C.err, onArrive: () => { if (retries && att < 1) { w.v.retry++; toW(t === "B" ? "A" : "B", att + 1); } else { w.v.err++; reply(C.err); } } }); }
+      else w.serve(t, 0.55, () => { if (t === "B") okB(); w.send(t, "smg", { color: C.res, onArrive: () => reply(C.res) }); }, att ? C.warn : C.req);
+    } });
+    w.at(0.1 + i * 0.15, go);
+  });
+}
+function drawChaos(ctx, w) {
+  pill(ctx, 20, 30, `client errors ${w.v.err}`, w.v.err ? C.err : C.res, { align: "left", font: "700 11px ui-monospace,Menlo,monospace" });
+  pill(ctx, 160, 30, `retries ${w.v.retry}`, C.warn, { align: "left", font: "700 11px ui-monospace,Menlo,monospace" });
+}
+REELS[9] = {
+  title: "Kill a worker under load", tag: "Task 9",
+  nodes: [...clients(4, { y0: 160, y1: 350 }), { id: "smg", label: "SMG", sub: "round_robin", x: 160, y: 255, w: 88, h: 80 },
+    { id: "A", label: "Worker A", sub: "ollama-a", x: 284, y: 160, w: 90, h: 70, slots: 2, slotLabel: false }, { id: "B", label: "Worker B", sub: "ollama-b", x: 284, y: 355, w: 90, h: 70, slots: 2, slotLabel: false }],
+  base(w) { w.links = [...ids(4).map(c => [c, "smg"]), ["smg", "A"], ["smg", "B"]]; },
+  scenes: [
+    { dur: 5, cap: "Steady traffic, **round_robin** across A and B.", setup(w) { chaosLoop(w); }, draw: drawChaos },
+    { dur: 7, cap: "**ollama-b dies.** Requests sent to B fail at connect, before any bytes have reached the client…", setup(w) { chaosLoop(w, { downAt: 1.2, cbTimeout: 99 }); }, draw: drawChaos },
+    { dur: 7, cap: "…so SMG **retries them on A**. Clients see **zero errors**, and the retries metric proves why.", setup(w) { w.n("B").state = "down"; chaosLoop(w, { cbTimeout: 99 }); w.n("B").fails = -99; }, draw: drawChaos },
+    { dur: 8, cap: "After repeated failures the **circuit breaker opens**: B gets no traffic, even after it comes back.", setup(w) { w.n("B").state = "down"; chaosLoop(w, { upAt: 3.5, cbTimeout: 99 }); }, draw: drawChaos },
+    { dur: 8, cap: "After a timeout it goes **half-open**, lets a few test requests through, and **closes** once they succeed.", setup(w) { chaosLoop(w, { startOpen: true, cbTimeout: 1.5 }); }, draw: drawChaos },
+    { dur: 7, cap: "With **--disable-retries**, each request that hits the dead worker becomes a **client error**, until the breaker opens.", setup(w) { w.n("B").state = "down"; chaosLoop(w, { retries: false, cbTimeout: 99 }); }, draw: drawChaos },
+  ],
+};
+function barsAnim(ctx, p, series, { title, labels, thr = 95 }) {
+  const x0 = 40, y0 = 380, H = 240, W = 270, n = labels.length, gw = W / n, bw = (gw - 14) / series.length;
+  ctx.fillStyle = C.muted; ctx.font = "600 11px ui-monospace,Menlo,monospace"; ctx.textAlign = "left"; ctx.fillText(title, x0 - 20, y0 - H - 26);
+  ctx.strokeStyle = "#222b3e"; ctx.lineWidth = 1; for (let v = 0; v <= 100; v += 25) { const y = y0 - H * v / 100; ctx.beginPath(); ctx.moveTo(x0, y); ctx.lineTo(x0 + W, y); ctx.stroke(); ctx.fillStyle = C.dim; ctx.font = "9.5px ui-monospace,Menlo,monospace"; ctx.textAlign = "right"; ctx.fillText(v + "%", x0 - 5, y + 3); }
+  const ty = y0 - H * thr / 100; ctx.save(); ctx.setLineDash([5, 4]); ctx.strokeStyle = C.warn; ctx.beginPath(); ctx.moveTo(x0, ty); ctx.lineTo(x0 + W, ty); ctx.stroke(); ctx.restore();
+  ctx.fillStyle = C.warn; ctx.textAlign = "right"; ctx.fillText("95% target", x0 + W, ty - 5);
+  labels.forEach((lb, i) => {
+    series.forEach((s, k) => {
+      const appear = Math.max(0, Math.min(1, p * (n + 1) - i)); const v = s.v[i] * appear, h = H * v / 100, x = x0 + i * gw + 7 + k * bw;
+      ctx.fillStyle = s.v[i] >= thr ? (s.color || C.res) : C.err; ctx.globalAlpha = s.alpha || 1; rrect(ctx, x, y0 - h, bw - 3, Math.max(1, h), 4); ctx.fill(); ctx.globalAlpha = 1;
+      if (appear >= 1) { ctx.fillStyle = C.text; ctx.font = "9.5px ui-monospace,Menlo,monospace"; ctx.textAlign = "center"; ctx.fillText(s.v[i] + "", x + (bw - 3) / 2, y0 - h - 4); }
+    });
+    ctx.fillStyle = C.muted; ctx.font = "10px ui-monospace,Menlo,monospace"; ctx.textAlign = "center"; ctx.fillText(lb, x0 + i * gw + gw / 2, y0 + 14);
+  });
+}
+REELS[10] = {
+  title: "Capstone: optimize for an SLO", tag: "Task 10",
+  nodes: [{ id: "src", kind: "client", label: "load", x: 34, y: 230 }, { id: "cfg", label: "your config", sub: "workers · slots · policy · limits", x: 214, y: 230, w: 180, h: 120, slots: 4 }],
+  links: [["src", "cfg"]],
+  scenes: [
+    { dur: 7, cap: "Requests arrive at random (**Poisson**) from 16 tenants with ~2k-token prompts, at a rate that ramps up.",
+      setup(w) { const arrive = () => { const col = TEN[Math.floor(Math.random() * 8)]; w.send("src", "cfg", { color: col, onArrive: () => w.serve("cfg", 0.7 + Math.random() * 0.6, () => {}, col) }); w.after(-Math.log(1 - Math.random()) / (2 + w.t * 0.6), arrive); }; w.at(0.1, arrive); } },
+    { dur: 8, cap: "Score = the **highest rate** at which **≥ 95%** of requests get their first token within **1.5 s**. Here: 2 req/s.",
+      setup(w) { showOnly(w, []); }, draw: (ctx, w, p) => barsAnim(ctx, p, [{ v: [100, 96, 23, 4] }], { title: "requests within SLO, per rate (illustrative)", labels: ["1/s", "2/s", "3/s", "4/s"] }) },
+    { dur: 7, cap: "Find the bottleneck first: the **engine** (Task 6), **routing** (Task 7) or **overload** (Task 8). Use metrics.py and the TTFT columns.",
+      setup(w) { showOnly(w, ["e", "r", "o2"]); }, draw(ctx, w, p) { [["engine", "NUM_PARALLEL, KV cache", 120], ["routing", "workers, cache_aware", 230], ["overload", "limits, queue", 340]].forEach(([t, s, y], i) => { const on = p * 3 > i; ctx.save(); ctx.fillStyle = on ? "#16203a" : "#0e131d"; ctx.strokeStyle = on ? C.req : C.line; ctx.lineWidth = on ? 2 : 1; if (on) { ctx.shadowColor = C.req; ctx.shadowBlur = 14; } rrect(ctx, 60, y - 34, 220, 68, 12); ctx.fill(); ctx.shadowBlur = 0; ctx.stroke(); ctx.fillStyle = on ? C.text : C.dim; ctx.font = "700 14px -apple-system,sans-serif"; ctx.textAlign = "center"; ctx.fillText(t, 170, y - 4); ctx.font = "11px ui-monospace,Menlo,monospace"; ctx.fillStyle = C.muted; ctx.fillText(s, 170, y + 16); ctx.restore(); }); } },
+    { dur: 8, cap: "Change **one knob** at a time and predict before each run. Every run is appended to capstone_history.jsonl.",
+      setup(w) { showOnly(w, []); }, draw: (ctx, w, p) => { barsAnim(ctx, p, [{ v: [100, 96, 23, 4], alpha: 0.45 }, { v: [100, 100, 97, 61], color: C.cyan }], { title: "baseline (faded) vs tuned (illustrative)", labels: ["1/s", "2/s", "3/s", "4/s"] }); } },
+  ],
+};
+
+/* ============================================================ parse guide + answers */
+const S = { tasks: [], answers: {}, copy: {}, ids: {}, cur: null, reel: null, tab: "live", status: null, results: {}, models: {} };
+const LABEL = /^\*\*(Goal|Predict|Do|Observe|Explain|Challenge|Stop|Multi-model|Now commit your choice|Checkpoint)([^*]*)\*\*\s*[:.]?\s*/;
+function parseGuide(text) {
+  const parts = text.split(/^## /m), out = { intro: parts[0], tasks: [], setup: null, next: null };
+  for (const p of parts.slice(1)) {
+    const nl = p.indexOf("\n"), title = p.slice(0, nl).trim(), body = p.slice(nl + 1), m = title.match(/^Task (\d+)\s*[-–—]\s*(.*)$/);
+    if (m) out.tasks.push(buildTask(+m[1], m[2], body));
+    else if (/^Setup/i.test(title)) out.setup = { title, body };
+    else if (/next/i.test(title)) out.next = { title, body };
+  }
+  return out;
+}
+function buildTask(num, title, body) {
+  const toks = lex(body).filter(t => t.type !== "hr"), steps = []; let goal = "", cur = { kind: "prep", tokens: [], lead: "" }; steps.push(cur);
+  for (const tk of toks) {
+    const m = tk.type === "p" && tk.text.match(LABEL);
+    if (m) {
+      const lab = m[1], rest = tk.text.slice(m[0].length);
+      if (lab === "Goal") { goal = rest.charAt(0).toUpperCase() + rest.slice(1); cur = { kind: "prep", tokens: [], lead: "" }; steps.push(cur); continue; }
+      if (lab === "Stop") { cur = { kind: "wrap", tokens: [tk], lead: "" }; steps.push(cur); continue; }
+      const kind = { Predict: "predict", Do: "do", Observe: "observe", Explain: "explain", Challenge: "challenge", "Multi-model": "do", "Now commit your choice": "do", Checkpoint: "observe" }[lab];
+      cur = { kind, title: { "Multi-model": "Multi-model", "Now commit your choice": "Commit your choice" }[lab], tokens: [], lead: rest }; steps.push(cur); continue;
+    }
+    if (cur.kind === "challenge" && (tk.type === "code" || (tk.type === "p" && /Ctrl-C|^Stop|^Leave this/.test(tk.text)))) { cur = { kind: "wrap", tokens: [], lead: "" }; steps.push(cur); }
+    cur.tokens.push(tk);
+  }
+  const live = steps.filter(s => s.tokens.length || s.lead);
+  if (!live.some(s => ["predict", "do"].includes(s.kind))) live.forEach(s => { if (s.kind === "prep") { s.kind = "do"; } });
+  return { num, title, goal, steps: live, text: body };
+}
+function parseAnswers(text) {
+  const out = {};
+  text.split(/^## /m).slice(1).forEach(p => {
+    const nl = p.indexOf("\n"), m = p.slice(0, nl).match(/Task (\d+)/); if (!m) return;
+    const body = p.slice(nl + 1), a = { items: {}, challenge: null, extra: [], body }; let numbered = false;
+    lex(body).filter(t => t.type !== "hr").forEach(tk => {
+      if (tk.type === "list" && tk.ordered) { numbered = true; tk.items.forEach((it, i) => a.items[tk.start + i] = it); }
+      else if (tk.type === "p" && /^\*\*Challenge:?\*\*/.test(tk.text)) a.challenge = tk.text.replace(/^\*\*Challenge:?\*\*\s*:?\s*/, "");
+      else a.extra.push(tk);
+    });
+    if (!numbered) a.reference = body;
+    out[+m[1]] = a;
+  });
+  return out;
+}
+
+/* ============================================================ rendering pages */
+const KIND = { prep: "Before you start", predict: "Predict", do: "Do", observe: "Observe", explain: "Explain", challenge: "Challenge", wrap: "Wrap up", check: "Check" };
+function callout(kind, html) { return `<div class="callout ${kind}">${html}</div>`; }
+function noteBox(key, ph) { return `<textarea class="note" data-key="${esc(key)}" placeholder="${esc(ph)}">${esc(store.get(key, ""))}</textarea><div class="saved" data-saved="${esc(key)}"></div>`; }
+function reveal(html, label = "Reveal answer") { return `<div class="reveal-row"><button class="btn small ghost" data-act="reveal">${label}</button></div><div class="answer">${html}</div>`; }
+function flow(toks, ctx) {
+  return toks.map(t => {
+    if (t.type === "code") return cmdBlock(t.text, t.lang, ctx);
+    if (t.type === "p") {
+      if (/Ctrl-C|^Stop |^Leave this/.test(t.text)) return callout("stop", `<p>${inline(t.text)}</p>`);
+      if (/^\*\*Checkpoint/.test(t.text)) return callout("ok", `<p>${inline(t.text)}</p>`);
+      return `<p>${inline(t.text)}</p>`;
+    }
+    return renderBlocks([t]);
+  }).join("\n");
+}
+function cmdBlock(text, lang, ctx) {
+  if (lang && !/^(bash|sh|shell|zsh|console)$/.test(lang)) return `<pre class="code">${esc(text)}</pre>`;
+  const bi = ctx.blk++, groups = groupShell(subModels(text)); let rows = "", before = "";
+  groups.forEach((g, gi) => {
+    if (g.kind === "comment") { const tx = g.lines.map(l => l.t).join("\n").trim(); if (tx) rows += `<div class="cmtrow">${esc(tx)}</div>`; return; }
+    const id = `cmd:${ctx.task}:${bi}:${gi}`, copy = copyText(g), term = termFor(copy), x = EXTRAS[ctx.task] || {};
+    S.copy[id] = copy; ctx.ids.push(id);
+    (x.before || []).filter(b => b.m.test(copy) && !ctx.usedBefore.has(b)).forEach(b => { ctx.usedBefore.add(b); before += callout(b.kind || "tip", tight(md(b.t))); });
+    const ex = (x.expect || []).filter(e => e.m.test(copy));
+    const chk = copy.match(/check\.py (\d+)/);
+    const ran = store.get(id, false);
+    rows += `<div class="cmdrow${ran ? " ran" : ""}" data-row="${id}">
+      <span class="tchip ${term.cls}" title="${esc(term.title)}">${term.label}</span>
+      <pre class="sh">${g.lines.map(hlLine).join("\n")}</pre>
+      <div class="tools">${chk ? `<button class="ico" data-act="check" data-task="${chk[1]}" title="Run check.py ${chk[1]} now">▶ run</button>` : ""}<button class="ico" data-act="copy" data-id="${id}" title="Copy (comments stripped)">copy</button><label class="tick" title="Mark as done"><input type="checkbox" data-act="tick" data-id="${id}"${ran ? " checked" : ""}></label></div>
+      ${term.fg ? `<div class="fgnote">Keeps running. Use Terminal ${term.fg} for it and leave it open; stop it later with Ctrl-C.</div>` : ""}
+    </div>${ex.length ? `<details class="expect" open><summary>What you should see</summary><div class="ebody">${ex.map(e => (e.out ? `<pre class="out">${esc(e.out)}</pre>` : "") + (e.t ? md(e.t) : "")).join("")}</div></details>` : ""}`;
+  });
+  return before + `<div class="cmd">${rows}</div>`;
+}
+function stepCard(t, s, si, ctx) {
+  const a = S.answers[t.num] || {}, kind = s.kind, id = `step-${si}`;
+  let body = s.lead ? `<p class="lead">${inline(s.lead)}</p>` : "";
+  if (kind === "explain") {
+    let done = false;
+    s.tokens.forEach(tk => {
+      if (!done && tk.type === "list" && tk.ordered) {
+        done = true;
+        body += tk.items.map((it, i) => {
+          const n = tk.start + i, k = `ans:${t.num}:${n}`, ans = a.items && a.items[n];
+          return `<div class="q"><div class="qhead"><span class="qn">Q${n}</span><div class="qt">${tight(md(it))}</div></div>${noteBox(k, "Your answer, in your own words. Then reveal and compare.")}${ans ? reveal(tight(md(ans))) : ""}</div>`;
+        }).join("");
+      } else body += flow([tk], ctx);
+    });
+    if (a.extra && a.extra.length) body += reveal(renderBlocks(a.extra), "More from the answers");
+  } else body += flow(s.tokens, ctx);
+  if (kind === "predict") body += noteBox(`pred:${t.num}`, "Your prediction, before running anything. A number or a shape is fine (\"req/s doubles\", \"TTFT stays flat\").");
+  if (kind === "observe") body += noteBox(`obs:${t.num}:${si}`, "What actually happened? Paste a number or two and compare with your prediction.");
+  if (kind === "challenge") { body += noteBox(`chal:${t.num}`, "Your approach and what you found."); if (a.challenge) body += reveal(tight(md(a.challenge)), "Reveal the challenge answer"); }
+  if (kind === "predict" && store.get(`pred:${t.num}`, "")) body += "";
+  return `<section class="card k-${kind}" id="${id}"><div class="hd"><span class="chip">${KIND[kind]}</span><b>${esc(s.title || "")}</b></div><div class="bd">${body}</div></section>`;
+}
+function whyCard(x) {
+  if (!x.why) return "";
+  return `<div class="why"><h4>Why this task matters</h4><p>${inline(x.why)}</p>${x.terms ? `<div class="terms">${x.terms.map(([k, v]) => `<span class="term-chip" tabindex="0">${esc(k)}<span class="tip">${inline(v)}</span></span>`).join("")}</div>` : ""}</div>`;
+}
+function renderTask(num) {
+  const t = S.tasks.find(x => x.num === num); if (!t) return renderHome();
+  const x = EXTRAS[num] || {}, a = S.answers[num] || {}, ctx = { task: num, blk: 0, ids: [], usedBefore: new Set() };
+  let h = `<div class="crumbs">Task ${num} of ${S.tasks.length}</div><h1>${inline(t.title)}</h1>${t.goal ? `<p class="goal">${inline(t.goal)}</p>` : ""}${whyCard(x)}`;
+  h += `<div class="loopbar">${t.steps.map((s, i) => `<a href="#task-${num}/step-${i}" data-jump="step-${i}">${KIND[s.kind]}${s.title ? ": " + esc(s.title) : ""}</a>`).join("")}<a href="#task-${num}/step-check" data-jump="step-check">Check</a></div>`;
+  h += t.steps.map((s, i) => stepCard(t, s, i, ctx)).join("");
+  const last = store.get(`checkout:${num}`, null);
+  h += `<section class="card k-check" id="step-check"><div class="hd"><span class="chip">Check</span><b>Confirm your results</b></div><div class="bd">
+    <p>Runs <code>python check.py ${num}</code> for you. It only reads the results you saved (and, for some tasks, asks the running gateway). It never starts or stops anything.</p>
+    <button class="btn primary" data-act="check" data-task="${num}">▶ Run check.py ${num}</button>
+    <pre class="checkout${last ? " show " + (last.passed ? "pass" : "fail") : ""}" id="checkout-${num}">${last ? esc(last.output) : ""}</pre>
+    ${a.reference ? reveal(md(a.reference), "Reveal reference notes") : ""}
+    ${x.summaryBox ? `<h3>Your summary</h3><p class="small">Your best config and the two changes that mattered most. This paragraph is the real deliverable of the lab.</p>${noteBox("summary:10", "Best config: … The two changes that mattered most: …")}` : ""}
+  </div></section>`;
+  const prev = num > 1 ? `<button class="btn" data-go="task-${num - 1}">← Task ${num - 1}</button>` : `<button class="btn" data-go="home">← Start</button>`;
+  const next = num < S.tasks.length ? `<button class="btn primary" data-go="task-${num + 1}">Task ${num + 1}: ${esc(S.tasks[num].title)} →</button>` : `<button class="btn primary" data-go="home">Back to start</button>`;
+  h += `<div class="pager">${prev}${next}</div>`;
+  S.ids[num] = ctx.ids;
+  $("#page").innerHTML = h;
+}
+function renderHome() {
+  const intro = lex(S.guide.intro).filter(t => !(t.type === "h" && t.level === 1));
+  const setupCtx = { task: 0, blk: 0, ids: [], usedBefore: new Set() };
+  const done = n => store.get(`done:${n}`, false);
+  let h = `<div class="hero"><div class="crumbs">Self-serve lab</div><h1>SMG + Ollama Lab</h1>
+    <p>Learn what the <strong>SMG gateway</strong> does, how it works with an inference engine, and how to tune the pair. Everything runs on your laptop with Ollama and a small model.</p>
+    <div class="loopsteps">${[["Predict", "var(--violet)", "write down what you expect"], ["Do", "var(--accent)", "type every command yourself"], ["Observe", "var(--cyan)", "compare with your guess"], ["Explain", "var(--amber)", "answer, then reveal"], ["Check", "var(--green)", "check.py confirms it"]].map(([k, c, d]) => `<div><b style="color:${c}">${k}</b>${d}</div>`).join("")}</div>
+    <p class="small">About 4–6 hours in total. Tasks 1–5 teach SMG's moving parts; Tasks 6–10 teach optimization. Every task ends with a challenge that has no step-by-step instructions.</p></div>`;
+  h += `<section class="card k-do"><div class="hd"><span class="chip">How to use this page</span></div><div class="bd">
+    <p>Keep this page next to your terminals. Every command has a chip on its left that says <strong>which terminal</strong> to type it in. Copy it with <em>copy</em>, run it, and tick the box. Under most commands, <em>What you should see</em> tells you if you're on track.</p>
+    <div class="terms4">
+      <div class="tbox"><span class="tt" style="background:#2b2111;color:var(--amber)">T1</span><b>Ollama</b><br><span class="small">Task 1 only: <code>ollama serve</code> in the foreground.</span></div>
+      <div class="tbox"><span class="tt" style="background:#16203a;color:#a3b9ff">T2</span><b>Your commands</b><br><span class="small">Almost everything: curl, bench.py, labctl.py, check.py.</span></div>
+      <div class="tbox"><span class="tt" style="background:#2b2111;color:var(--amber)">T3</span><b>SMG</b><br><span class="small">Tasks 2–3: <code>smg launch</code> in the foreground, so you can read its log.</span></div>
+      <div class="tbox"><span class="tt" style="background:#2b2111;color:var(--amber)">T4</span><b>Adapter</b><br><span class="small">Task 3: the <code>/health</code> adapter in the foreground.</span></div>
+    </div>
+    <p>From Task 3 on, <code>labctl.py</code> runs the servers in the background, so you mostly live in T2. The <strong>Live</strong> panel on the right shows which lab servers are running and flags leftovers that block a port. <strong>Results</strong> charts the files you save. The reel at the top explains each task in about 30 seconds.</p>
+    <p class="small">Your notes, predictions and ticks are saved in this browser. <em>Notes → Export</em> downloads them as Markdown.</p>
+  </div></section>`;
+  h += `<section class="card k-prep"><div class="hd"><span class="chip">Read first</span></div><div class="bd">${renderBlocks(intro)}</div></section>`;
+  if (S.guide.setup) h += `<section class="card k-predict"><div class="hd"><span class="chip">${esc(S.guide.setup.title)}</span></div><div class="bd">${flow(lex(S.guide.setup.body).filter(t => t.type !== "hr"), setupCtx)}</div></section>`;
+  h += `<h3 style="margin-top:28px">The tasks</h3><div class="taskgrid">${S.tasks.map(t => `<div class="tcard${done(t.num) ? " done" : ""}" data-go="task-${t.num}"><div class="n">TASK ${t.num}</div><b>${inline(t.title)}</b><span>${inline(t.goal || "")}</span></div>`).join("")}</div>`;
+  if (S.guide.next) h += `<section class="card k-prep"><div class="hd"><span class="chip">${esc(S.guide.next.title)}</span></div><div class="bd">${renderBlocks(lex(S.guide.next.body))}</div></section>`;
+  S.ids[0] = setupCtx.ids;
+  $("#page").innerHTML = h;
+}
+
+/* ============================================================ nav + progress */
+function taskProgress(n) {
+  const ids = S.ids[n] || store.get(`ids:${n}`, []);
+  const ran = ids.filter(id => store.get(id, false)).length;
+  return { ran, total: ids.length, done: store.get(`done:${n}`, false) };
+}
+function ring(p, done) {
+  const r = 8, c = 2 * Math.PI * r;
+  if (done) return `<svg width="20" height="20" viewBox="0 0 20 20"><circle cx="10" cy="10" r="9" fill="#173d27" stroke="#4ade80" stroke-width="1.5"/><path d="M6 10.5l2.6 2.6L14 7.6" fill="none" stroke="#4ade80" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+  return `<svg width="20" height="20" viewBox="0 0 20 20"><circle cx="10" cy="10" r="${r}" fill="none" stroke="#232c40" stroke-width="2.5"/><circle cx="10" cy="10" r="${r}" fill="none" stroke="#7aa2ff" stroke-width="2.5" stroke-dasharray="${c * p} ${c}" transform="rotate(-90 10 10)" stroke-linecap="round"/></svg>`;
+}
+function renderNav() {
+  const doneCount = S.tasks.filter(t => store.get(`done:${t.num}`, false)).length;
+  $("#nav").innerHTML = `<div class="brand"><div class="logo">SMG</div><div><b>SMG + Ollama Lab</b><span>predict · do · observe · explain</span></div></div>
+    <div class="overall"><i style="width:${doneCount / Math.max(1, S.tasks.length) * 100}%"></i></div><div class="overall-l">${doneCount} of ${S.tasks.length} tasks checked</div>
+    <div class="navlist"><div class="navitem${S.cur === "home" ? " active" : ""}" data-go="home"><span class="num">◆</span>Start &amp; setup</div>
+    <div class="navsep">Gateway basics</div>${S.tasks.filter(t => t.num <= 5).map(navItem).join("")}
+    <div class="navsep">Optimization</div>${S.tasks.filter(t => t.num > 5).map(navItem).join("")}</div>
+    <div class="navfoot"><button class="btn small" data-act="export">Export notes</button><button class="btn small ghost" data-act="reset">Reset progress</button></div>`;
+}
+function navItem(t) {
+  const p = taskProgress(t.num);
+  return `<div class="navitem${S.cur === "task-" + t.num ? " active" : ""}" data-go="task-${t.num}"><span class="num">${t.num}</span><span style="flex:1">${esc(t.title.replace(/`/g, ""))}</span>${ring(p.total ? p.ran / p.total : 0, p.done)}</div>`;
+}
+
+/* ============================================================ aside: reel, live, results, notes */
+function mountReel(n) {
+  if (S.reel) S.reel.destroy();
+  S.reel = new Reel($("#reelhost"), REELS[n] || REELS[0]);
+}
+const COMP_HINT = {
+  "ollama-a": "If this is your Task 1 <code>ollama serve</code>, stop it with Ctrl-C in Terminal 1 before <code>labctl.py up ollama-a</code>, or labctl will refuse to start.",
+  "ollama-b": "Something else owns :11501. Stop it before <code>labctl.py up ollama-b</code>.",
+  "adapter-a": "Your Terminal 4 adapter. Ctrl-C it before <code>labctl.py up adapter-a</code>.",
+  "adapter-b": "Stop it before <code>labctl.py up adapter-b</code>.",
+  smg: "Your foreground SMG (Terminal 3). Fine for Tasks 2–3; Ctrl-C it before <code>labctl.py up smg</code>.",
+};
+function renderLive() {
+  const st = S.status, el = $("#tab-live");
+  if (S.statusDown) { el.innerHTML = `<div class="hint">Can't reach the lab companion server. Start it again from the lab folder, then this panel refreshes by itself:<br><code>python3 labweb/server.py</code></div>`; return; }
+  if (!st) { el.innerHTML = `<p class="small">Checking lab servers…</p>`; return; }
+  let h = `<div class="sect">Lab servers</div>`;
+  for (const c of st.components) {
+    let dot = "", txt = "stopped", hint = "";
+    if (c.labctl && c.ready) { dot = "ok"; txt = "labctl · ready"; }
+    else if (c.labctl) { dot = "warn"; txt = "labctl · starting / not ready"; }
+    else if (c.listening) { dot = "manual"; txt = `started by you${c.process ? ` · ${esc(c.process.name)} ${c.process.pid}` : ""}${c.ready ? " · ready" : ""}`; hint = COMP_HINT[c.name]; }
+    h += `<div class="comp"><span class="dot ${dot}"></span><b>${c.name}</b><span class="port">:${c.port}</span><span class="st">${txt}</span></div>`;
+    if (hint) h += `<div class="hint">${hint}</div>`;
+  }
+  if (st.smg_workers) {
+    h += `<div class="sect">SMG workers (/workers)</div>`;
+    h += st.smg_workers.length ? st.smg_workers.map(w => `<div class="wk"><span class="dot ${w.healthy ? "ok" : "warn"}"></span>${esc(w.url)} <em>${esc(w.type || "")}</em> <em>${esc((w.models || []).join(", ") || "no models listed")}</em></div>`).join("") : `<p class="small">No workers registered.</p>`;
+  } else if (st.components.find(c => c.name === "smg" && c.listening)) h += `<p class="small">SMG is up, but <code>/workers</code> needs the API key (Task 2 with <code>--api-key</code>).</p>`;
+  const env = Object.entries(st.lab_env || {}).filter(([, v]) => v);
+  if (env.length) h += `<div class="sect">lab.env</div><div class="envchips">${env.map(([k, v]) => `<span>${esc(k)}=${esc(v)}</span>`).join("")}</div>`;
+  h += `<p class="small" style="margin-top:14px">Refreshes every 3 s. This panel only looks: it never starts or stops anything.</p>`;
+  el.innerHTML = h;
+  const blocked = st.components.some(c => c.listening && !c.labctl && c.name !== "smg");
+  const btn = document.querySelector('[data-tab="live"]'); btn.innerHTML = "Live" + (blocked ? `<span class="badge">!</span>` : "");
+}
+async function pollStatus() {
+  try { S.status = await api("/api/status"); S.statusDown = false; } catch { S.status = null; S.statusDown = true; }
+  if (S.tab === "live") renderLive();
+}
+const PAL = ["#7aa2ff", "#4ade80", "#fbbf24", "#f472b6", "#22d3ee", "#c084fc"];
+const short = f => f.replace(/^t\d+_/, "").replace(/\.jsonl?$/, "");
+function svgBars(title, cats, series, fmt = v => v) {
+  const W = 352, H = 150, pl = 36, pb = 22, pt = 14, vals = series.flatMap(s => s.v.filter(v => v != null)), max = Math.max(1e-9, ...vals) * 1.12;
+  const gw = (W - pl - 6) / cats.length, bw = Math.max(4, Math.min(18, (gw - 10) / series.length));
+  let g = "";
+  for (let k = 0; k <= 3; k++) { const y = pt + (H - pt - pb) * (1 - k / 3); g += `<line x1="${pl}" x2="${W - 4}" y1="${y}" y2="${y}" stroke="#1d2536"/><text x="${pl - 4}" y="${y + 3}" fill="#5f687c" font-size="9" text-anchor="end">${fmt(+(max * k / 3).toPrecision(2))}</text>`; }
+  cats.forEach((c, i) => {
+    const gx = pl + i * gw + (gw - bw * series.length) / 2;
+    series.forEach((s, k) => { const v = s.v[i]; if (v == null) return; const h = (H - pt - pb) * v / max; g += `<rect x="${gx + k * bw}" y="${H - pb - h}" width="${bw - 2}" height="${Math.max(1, h)}" rx="2" fill="${s.color}"><title>${esc(s.name)} · ${esc(c)}: ${v}</title></rect>`; });
+    g += `<text x="${pl + i * gw + gw / 2}" y="${H - 7}" fill="#8e97aa" font-size="9.5" text-anchor="middle">${esc(c.length > 14 ? c.slice(0, 13) + "…" : c)}</text>`;
+  });
+  return `<div class="chart"><h5>${esc(title)}</h5><svg viewBox="0 0 ${W} ${H}" width="100%" font-family="ui-monospace,Menlo,monospace">${g}</svg><div class="legend">${series.map(s => `<span><i style="background:${s.color}"></i>${esc(s.name)}</span>`).join("")}</div></div>`;
+}
+function benchCharts(files) {
+  const names = Object.keys(files), concs = [...new Set(names.flatMap(f => files[f].data.map(r => r.concurrency)))].sort((a, b) => a - b);
+  const pick = (f, c, k) => { const r = files[f].data.find(r => r.concurrency === c); return r ? r[k] : null; };
+  const ser = k => concs.map((c, i) => ({ name: `${c} client${c > 1 ? "s" : ""}`, color: PAL[i % PAL.length], v: names.map(f => pick(f, c, k)) }));
+  const cats = names.map(short);
+  let h = svgBars("req/s (higher is better)", cats, ser("req_per_s")) + svgBars("TTFT p50, ms (lower is better)", cats, ser("ttft_ms_p50"), v => Math.round(v));
+  h += `<div class="chart" style="overflow:auto"><table class="rtable"><thead><tr><th>file</th><th>conc</th><th>ok/fail</th><th>req/s</th><th>TTFT p50</th><th>p99</th><th>ITL p50</th><th>E2E p50</th></tr></thead><tbody>${names.flatMap(f => files[f].data.map(r => `<tr><td>${esc(short(f))}</td><td>${r.concurrency ?? r.request_rate ?? ""}</td><td>${r.ok}/${r.failed}</td><td>${r.req_per_s}</td><td>${r.ttft_ms_p50}</td><td>${r.ttft_ms_p99}</td><td>${r.itl_ms_p50}</td><td>${r.e2e_ms_p50}</td></tr>`)).join("")}</tbody></table></div>`;
+  return h;
+}
+function chaosChart(name, d) {
+  const secs = Object.keys(d.per_second || {}).map(Number).sort((a, b) => a - b); if (!secs.length) return "";
+  const W = 352, H = 130, pl = 30, pb = 20, pt = 10, n = secs[secs.length - 1] + 1, bw = (W - pl - 4) / n;
+  const max = Math.max(1, ...secs.map(s => (d.per_second[s].ok || 0) + (d.per_second[s].err || 0)));
+  let g = "";
+  secs.forEach(s => { const ok = d.per_second[s].ok || 0, er = d.per_second[s].err || 0, x = pl + s * bw, hk = (H - pt - pb) * ok / max, he = (H - pt - pb) * er / max; g += `<rect x="${x}" y="${H - pb - hk}" width="${Math.max(1, bw - 1)}" height="${hk}" fill="#4ade80"/><rect x="${x}" y="${H - pb - hk - he}" width="${Math.max(1, bw - 1)}" height="${he}" fill="#f87171"/>`; });
+  (d.events || []).forEach(e => { const m = e.match(/t=\s*([\d.]+)s\s+labctl (\w+) (\S+)/); if (!m) return; const x = pl + parseFloat(m[1]) * bw; g += `<line x1="${x}" x2="${x}" y1="${pt}" y2="${H - pb}" stroke="#fbbf24" stroke-dasharray="3 3"/><text x="${x + 3}" y="${pt + 9}" fill="#fbbf24" font-size="9">${m[2] === "down" ? "kill" : "restore"} ${esc(m[3])}</text>`; });
+  for (let s = 0; s < n; s += 5) g += `<text x="${pl + s * bw}" y="${H - 6}" fill="#5f687c" font-size="9">${s}s</text>`;
+  return `<div class="chart"><h5>${esc(short(name))}: ${d.ok} ok · ${d.failed} failed</h5><svg viewBox="0 0 ${W} ${H}" width="100%" font-family="ui-monospace,Menlo,monospace">${g}</svg><div class="legend"><span><i style="background:#4ade80"></i>ok per second</span><span><i style="background:#f87171"></i>errors per second</span></div></div>`;
+}
+function kvBlock(title, obj) {
+  const rows = Object.entries(obj).map(([k, v]) => `<span>${esc(k)}</span><span>${esc(typeof v === "object" && v ? Object.entries(v).map(([a, b]) => `${a}=${typeof b === "number" ? +b.toFixed(3) : b}`).join("  ") || "–" : v)}</span>`).join("");
+  return `<div class="chart"><h5>${esc(title)}</h5><div class="kv">${rows}</div></div>`;
+}
+function renderResults() {
+  const el = $("#tab-results"), n = S.cur && S.cur.startsWith("task-") ? +S.cur.slice(5) : 0;
+  if (!n) { el.innerHTML = `<p class="small">Open a task to see the results you saved for it. All files live in <code>results/</code>.</p>`; return; }
+  const all = S.results, pre = n === 10 ? "capstone_" : `t${n}_`, mine = Object.fromEntries(Object.entries(all).filter(([k]) => k.startsWith(pre)));
+  if (!Object.keys(mine).length) {
+    const t = S.tasks.find(x => x.num === n), outs = [...new Set((t.text.match(/results\/[\w.${}]+\.jsonl?/g) || []))];
+    el.innerHTML = `<p class="small">No results for Task ${n} yet. These commands in the task write them:</p>${outs.map(o => `<div class="wk">${esc(o)}</div>`).join("")}<p class="small">Run one, and the chart appears here within a few seconds.</p>`; return;
+  }
+  let h = "";
+  const bench = Object.fromEntries(Object.entries(mine).filter(([, v]) => Array.isArray(v.data) && v.data[0] && "req_per_s" in v.data[0]));
+  if (Object.keys(bench).length) h += `<div class="sect">bench.py runs</div>` + benchCharts(bench);
+  if (n === 1 && all["t2_external.json"]) h += "";
+  if (n === 2 && all["t1_direct.json"]) h += `<div class="sect">Compared with Task 1 (no gateway)</div>` + benchCharts({ "t1_direct.json": all["t1_direct.json"], ...bench });
+  Object.entries(mine).forEach(([k, v]) => {
+    if (v.data && v.data.per_second) h += chaosChart(k, v.data);
+    else if (v.data && v.data.requests_by_worker) h += kvBlock(short(k), v.data);
+  });
+  if (mine["capstone_history.jsonl"]) {
+    const hist = mine["capstone_history.jsonl"].data;
+    h += `<div class="sect">capstone runs</div>` + svgBars("score (req/s at SLO) per run", hist.map((_, i) => `run ${i + 1}`), [{ name: "score", color: "#22d3ee", v: hist.map(r => r.score_req_s) }]);
+    if (mine["capstone_best.json"]) h += kvBlock("best config", mine["capstone_best.json"].data.config || {});
+  }
+  el.innerHTML = h || `<p class="small">Files found, but none in a format this panel charts.</p>`;
+}
+async function pollResults() { try { S.results = await api("/api/results"); } catch { } if (S.tab === "results") renderResults(); }
+function renderNotes() {
+  const keys = store.keys().filter(k => /^(pred|obs|ans|chal|summary):/.test(k) && store.get(k, ""));
+  const n = S.cur && S.cur.startsWith("task-") ? +S.cur.slice(5) : 0;
+  const mine = keys.filter(k => k.split(":")[1] == n);
+  $("#tab-notes").innerHTML = `<p class="small">Everything you type in the page is saved in this browser.</p><button class="btn small" data-act="export">Export all notes (.md)</button>
+    <div class="sect">${n ? `Task ${n}` : "All tasks"}</div>${(n ? mine : keys).map(k => `<div class="chart"><h5>${esc(noteTitle(k))}</h5><div style="font-size:13px;white-space:pre-wrap;padding:2px 4px 6px">${esc(store.get(k, ""))}</div></div>`).join("") || `<p class="small">No notes yet.</p>`}`;
+}
+function noteTitle(k) { const [t, n, i] = k.split(":"); return { pred: `Task ${n} · prediction`, obs: `Task ${n} · observation`, ans: `Task ${n} · Q${i}`, chal: `Task ${n} · challenge`, summary: "Capstone summary" }[t] || k; }
+function exportNotes() {
+  let out = "# My SMG + Ollama lab notes\n\n";
+  S.tasks.forEach(t => {
+    const ks = store.keys().filter(k => /^(pred|obs|ans|chal|summary):/.test(k) && k.split(":")[1] == t.num && store.get(k, ""));
+    if (!ks.length) return;
+    out += `## Task ${t.num}: ${t.title}\n\n` + ks.sort().map(k => `**${noteTitle(k).split(" · ")[1] || noteTitle(k)}**\n\n${store.get(k, "")}\n`).join("\n") + "\n";
+  });
+  const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([out], { type: "text/markdown" })); a.download = "smg-lab-notes.md"; a.click();
+}
+function setTab(t) {
+  S.tab = t; document.querySelectorAll("#tabs button").forEach(b => b.classList.toggle("on", b.dataset.tab === t));
+  ["live", "results", "notes"].forEach(k => $("#tab-" + k).hidden = k !== t);
+  if (t === "live") renderLive(); if (t === "results") { renderResults(); pollResults(); } if (t === "notes") renderNotes();
+}
+
+/* ============================================================ file drawer */
+async function openFile(path) {
+  $("#drawerTitle").textContent = path; $("#drawerBody").innerHTML = `<p class="small">Loading…</p>`; $("#drawer").classList.add("open");
+  try {
+    const f = await api("/api/file?path=" + encodeURIComponent(path));
+    $("#drawerBody").innerHTML = path.endsWith(".md") ? `<div class="page" style="padding:10px 0;max-width:none">${md(f.text)}</div>` : `<pre class="code">${esc(f.text)}</pre>`;
+    if ($("#drawerBody .mermaid")) loadMermaid();
+  } catch { $("#drawerBody").innerHTML = `<p class="small">Can't open <code>${esc(path)}</code>. It isn't a viewable lab file.</p>`; }
+}
+function loadMermaid() {
+  const run = () => window.mermaid && window.mermaid.run({ nodes: document.querySelectorAll("#drawerBody .mermaid") }).catch(() => { });
+  if (window.mermaid) return run();
+  const s = document.createElement("script"); s.src = "https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js";
+  s.onload = () => { window.mermaid.initialize({ startOnLoad: false, theme: "dark" }); run(); }; document.head.appendChild(s);
+}
+
+/* ============================================================ routing + events */
+function route() {
+  const hash = location.hash.slice(1) || "home", [page, anchor] = hash.split("/");
+  if (page !== S.cur) {
+    S.cur = page;
+    const n = page.startsWith("task-") ? +page.slice(5) : 0;
+    if (n) { renderTask(n); store.set(`ids:${n}`, S.ids[n]); } else renderHome();
+    mountReel(n); renderNav(); $("#main").scrollTop = 0;
+    if (S.tab === "results") renderResults(); if (S.tab === "notes") renderNotes();
+    $("#nav").classList.remove("open");
+  }
+  if (anchor) { const el = document.getElementById(anchor); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); }
+}
+document.addEventListener("click", async e => {
+  const go = e.target.closest("[data-go]"); if (go) { location.hash = go.dataset.go; return; }
+  const jump = e.target.closest("[data-jump]"); if (jump) { e.preventDefault(); const el = document.getElementById(jump.dataset.jump); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); return; }
+  const file = e.target.closest("a.file"); if (file) { e.preventDefault(); openFile(file.dataset.file); return; }
+  const tab = e.target.closest("#tabs button"); if (tab) { setTab(tab.dataset.tab); return; }
+  const act = e.target.closest("[data-act]"); if (!act) return;
+  const a = act.dataset.act;
+  if (a === "copy") {
+    const txt = S.copy[act.dataset.id]; try { await navigator.clipboard.writeText(txt); } catch { const ta = document.createElement("textarea"); ta.value = txt; document.body.appendChild(ta); ta.select(); document.execCommand("copy"); ta.remove(); }
+    act.textContent = "copied"; act.classList.add("ok"); setTimeout(() => { act.textContent = "copy"; act.classList.remove("ok"); }, 1200);
+  }
+  if (a === "tick") { const id = act.dataset.id; store.set(id, act.checked); act.closest(".cmdrow").classList.toggle("ran", act.checked); renderNav(); }
+  if (a === "reveal") { const ans = act.closest(".reveal-row").nextElementSibling; const on = ans.classList.toggle("show"); act.textContent = on ? "Hide" : (act.dataset.label || (act.dataset.label = act.textContent, act.dataset.label)); if (!act.dataset.label) act.dataset.label = "Reveal answer"; }
+  if (a === "check") {
+    const n = +act.dataset.task, out = document.getElementById(`checkout-${n}`); act.disabled = true; const old = act.textContent; act.textContent = "checking…";
+    try {
+      const r = await api(`/api/check/${n}`, { method: "POST" }); store.set(`checkout:${n}`, r);
+      if (out) { out.textContent = r.output; out.className = `checkout show ${r.passed ? "pass" : "fail"}`; }
+      if (r.passed) { store.set(`done:${n}`, true); toast(`Task ${n} done ✓`); } else toast(r.output.split("\n")[0]);
+      renderNav();
+    } catch { toast("Couldn't reach the lab companion server"); }
+    act.disabled = false; act.textContent = old;
+  }
+  if (a === "export") exportNotes();
+  if (a === "reset" && confirm("Clear all ticks, notes and check results saved in this browser?")) { store.keys().forEach(k => store.del(k)); S.cur = null; route(); }
+  if (a === "closedrawer") $("#drawer").classList.remove("open");
+});
+document.addEventListener("input", e => {
+  const k = e.target.dataset && e.target.dataset.key; if (!k) return;
+  store.set(k, e.target.value);
+  const s = document.querySelector(`[data-saved="${CSS.escape(k)}"]`); if (s) { s.textContent = "saved"; clearTimeout(s._h); s._h = setTimeout(() => s.textContent = "", 1000); }
+});
+document.addEventListener("keydown", e => { if (e.key === "Escape") $("#drawer").classList.remove("open"); });
+$("#fab").onclick = () => $("#aside").classList.toggle("open");
+$("#menuBtn").onclick = () => $("#nav").classList.toggle("open");
+
+/* ============================================================ boot */
+(async function boot() {
+  try {
+    const g = await api("/api/guide");
+    S.models = g.models || {};
+    S.guide = parseGuide(g.guide); S.tasks = S.guide.tasks; S.answers = parseAnswers(g.answers);
+  } catch {
+    document.body.innerHTML = `<div class="offline"><h2>Start the lab companion</h2><p>This page reads the lab files through a tiny local server. In the lab folder, run:</p><pre class="code">python3 labweb/server.py</pre><p>It opens <a href="http://127.0.0.1:8090">http://127.0.0.1:8090</a>. It uses only Python's standard library.</p></div>`;
+    return;
+  }
+  window.addEventListener("hashchange", route);
+  route(); pollStatus(); pollResults();
+  setInterval(pollStatus, 3000); setInterval(pollResults, 8000);
+})();
+</script>
+</body>
+</html>
