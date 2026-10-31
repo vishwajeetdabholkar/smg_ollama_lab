@@ -1429,6 +1429,19 @@ $("#menuBtn").onclick = () => $("#nav").classList.toggle("open");
 
 /* ============================================================ boot */
 (async function boot() {
+  const cap = new URLSearchParams(location.search).get("capture");
+  if (cap !== null) {
+    // Recording mode for labweb/record_reels.py: one reel, time driven by window.__advance(seconds).
+    document.body.innerHTML = `<div id="cap" style="width:360px;padding:10px"></div>`;
+    document.body.style.cssText = "background:#0b0f17;margin:0;overflow:hidden";
+    const def = REELS[+cap] || REELS[0], r = new Reel($("#cap"), def);
+    $("#cap .reel-ctl").remove(); $("#cap .reel").style.boxShadow = "none";
+    r.alive = false; r.go(0); let ts = 0; r.last = 0;
+    window.__total = def.scenes.reduce((s, sc) => s + sc.dur, 0);
+    window.__advance = sec => { for (let k = 0; k < Math.round(sec * 60); k++) { ts += 1000 / 60; r.tick(ts); } };
+    window.__advance(0.02);
+    return;
+  }
   try {
     const g = await api("/api/guide");
     S.models = g.models || {};
