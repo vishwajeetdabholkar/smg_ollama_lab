@@ -47,7 +47,7 @@ Every one of these has a reason, and each task walks you to it.
 You need [Ollama](https://ollama.com) (`brew install ollama` on macOS, `curl -fsSL https://ollama.com/install.sh | sh` on Linux), Python 3 and a few GB of disk for the models.
 
 ```bash
-git clone <this repo> smg_ollama_lab && cd smg_ollama_lab
+git clone https://github.com/vishwajeetdabholkar/smg_ollama_lab.git && cd smg_ollama_lab
 bash setup.sh                  # checks Ollama, creates .venv, installs SMG + deps, downloads models, verifies
 source .venv/bin/activate
 ```
@@ -73,7 +73,7 @@ Each task has a 20-40 second reel in the interactive guide. Here they all are:
 </tr>
 <tr>
 <td align="center" valign="top"><img src="docs/media/reel-3.gif" width="260" alt="Task 3"><br><b>3 · Self-hosted HTTP mode</b><br><sub>worker registration, why <code>/health</code> matters (in the source), gateway overhead</sub></td>
-<td align="center" valign="top"><img src="docs/media/reel-4.gif" width="260" alt="Task 4"><br><b>4 · APIs and models</b><br><sub>Anthropic/Responses translation, multi-model routing, aliases, tracing headers</sub></td>
+<td align="center" valign="top"><img src="docs/media/reel-4.gif" width="260" alt="Task 4"><br><b>4 · APIs and models</b><br><sub>Anthropic and Responses APIs (and who really answers them), multi-model routing, aliases, tracing headers</sub></td>
 <td align="center" valign="top"><img src="docs/media/reel-5.gif" width="260" alt="Task 5"><br><b>5 · Observability</b><br><sub>SMG metrics and logs, and what HTTP mode cannot measure</sub></td>
 </tr>
 <tr>

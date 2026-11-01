@@ -78,7 +78,7 @@ def t4():
     assert r.status_code == 200, f"alias 'fast' did not work ({r.status_code}): start smg with --model-alias fast={cfg.MODEL}"
     worker = r.headers.get("x-smg-routed-worker-id", "")
     return [f"how SMG picked the worker for model 'fast' (it went to {worker or '?'})",
-            "the difference between /v1/chat/completions, /v1/messages and /v1/responses, and who translates",
+            "the difference between /v1/chat/completions, /v1/messages and /v1/responses, and who actually answers each",
             "what x-request-id and x-smg-routed-worker-id are for"]
 
 

@@ -279,10 +279,12 @@ python check.py 3
 ```bash
 python labctl.py up smg --workers a       # if it is not running
 J='Content-Type: application/json'
-# 1. Anthropic Messages API -> translated by SMG to chat completions
+# 1. Anthropic Messages API
 curl -s localhost:30100/v1/messages -H "$J" -d '{"model":"qwen3:0.6b","max_tokens":60,"messages":[{"role":"user","content":"Say hi"}]}' | python -m json.tool
 # 2. OpenAI Responses API
 curl -s localhost:30100/v1/responses -H "$J" -d '{"model":"qwen3:0.6b","input":"Say hi","max_output_tokens":60}' | python -m json.tool
+#    which path actually reached Ollama for those two?
+grep -E '"/v1/(messages|responses)"' logs/ollama-a.log | tail -2
 # 3. streaming, with token usage at the end
 curl -sN localhost:30100/v1/chat/completions -H "$J" -d '{"model":"qwen3:0.6b","messages":[{"role":"user","content":"Count to 5"}],"max_tokens":30,"stream":true,"stream_options":{"include_usage":true},"reasoning_effort":"none"}'
 # 4. your own request id, echoed back and written to the log
@@ -319,7 +321,7 @@ done
 
 **Explain**
 
-1. Who translated `/v1/messages` into something Ollama understands? Why did that work in HTTP mode but not in external mode?
+1. Who actually answered `/v1/messages`: SMG or Ollama? What does Ollama's log prove? Why did the same request fail in external mode?
 2. What is `x-smg-routed-worker-id` good for when you debug?
 3. Why is "client picks a model name, gateway picks a worker" a better contract than clients knowing worker URLs?
 4. What would `--model-alias` let you do during a model upgrade?

@@ -48,7 +48,7 @@ An engine is good at one thing: turning prompts into tokens fast on one machine.
 2. **Smart placement.** Send a request to the worker that already has its prompt cached (`cache_aware`), or to the least busy one.
 3. **Protection.** Cap how much work reaches each engine; queue or reject the rest instead of letting latency explode for everyone.
 4. **Failure hiding.** Detect dead workers, stop sending them traffic, and retry the requests that failed.
-5. **API translation.** Speak OpenAI Chat, OpenAI Responses and Anthropic Messages to clients, whatever the engine speaks.
+5. **Many APIs, one address.** Accept OpenAI Chat, OpenAI Responses and Anthropic Messages from clients. In gRPC mode SMG implements those APIs itself; in HTTP mode it routes them, and the engine must speak them (Ollama does).
 6. **Visibility.** One place with request counts, latencies, errors and retries for the whole fleet.
 
 ## Two ways SMG can treat a worker
@@ -61,7 +61,7 @@ This lab shows both, because Ollama sits right at the boundary between them.
 | Registration needs | nothing; it accepts the URL | `GET /health` = 200, then `/v1/models` |
 | Worker choice | least in-flight requests; `--policy` is ignored | your `--policy` |
 | `/v1/models` on the gateway | external models are not listed | lists self-hosted models |
-| Anthropic `/v1/messages` | not implemented in 1.13 | translated by SMG |
+| Anthropic `/v1/messages` | not implemented in 1.13 | forwarded as-is; the engine answers (Ollama implements it) |
 | Retries and circuit breaker | basic | full |
 | Lab tasks | Task 2 | Tasks 3-10 (via `scripts/ollama_adapter.py`) |
 
